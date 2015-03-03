@@ -61,21 +61,33 @@ namespace equalizerapo_and_zune
                 track != null)
             {
                 CurrentFile = new File(track);
-                PointConfig();
+                PointConfig(null);
             }
+        }
+
+        public static void SetFilterToNone()
+        {
+            equalizerapo_api eqAPI = new equalizerapo_api();
+            eqAPI.PointConfig("none.txt");
         }
 
         #endregion
 
         #region private methods
 
-        private void PointConfig()
+        private void PointConfig(String equalizerFilename)
         {
-            if (CurrentFile == null)
+            // get the equalizer file name
+            if (CurrentFile == null && equalizerFilename == null)
             {
                 return;
             }
+            if (equalizerFilename == null)
+            {
+                equalizerFilename = CurrentFile.GetEqualizerFilename();
+            }
 
+            // check that the config file exists and is a file, not a directory
             String configPath = File.GetEqualizerAPOPath() + "config\\config.txt";
             if (!System.IO.File.Exists(configPath) ||
                 (System.IO.File.GetAttributes(configPath) & FileAttributes.Directory) == FileAttributes.Directory)
@@ -85,7 +97,7 @@ namespace equalizerapo_and_zune
                     configPath);
             }
 
-            String equalizerFilename = CurrentFile.GetEqualizerFilename();
+            // write the include to the config file
             System.IO.File.WriteAllLines(
                 configPath,
                 new string[] { "Include: " + equalizerFilename });

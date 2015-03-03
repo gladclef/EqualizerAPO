@@ -81,8 +81,9 @@ namespace equalizerapo_and_zune
                     double freq = Convert.ToDouble(nums[0].Value, provider);
                     double gain = Convert.ToDouble(nums[1].Value, provider);
                     double Q = Convert.ToDouble(nums[1].Value, provider);
-                    filters.Add(freq,
-                        new Filter(freq, gain, Q));
+                    Filter filter = new Filter(freq, gain, Q);
+                    filter.FilterChanged += FilterChanged;
+                    filters.Add(freq, filter);
                 }
             }
             CurrentFilters = filters;
@@ -158,11 +159,13 @@ namespace equalizerapo_and_zune
             // write out each filter
             // example filter:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
+            System.Diagnostics.Debugger.Log(1, "", String.Format("Saving file {0} with filters:\n", FullPath));
             for (int i = 0; i < CurrentFilters.Count; i++)
             {
                 Filter filter = CurrentFilters.ElementAt(i).Value;
                 lines.AddLast(String.Format("Filter {0}: ON  PK       {1}",
                     i.ToString().PadLeft(2), filter.GetFiletypeString()));
+                System.Diagnostics.Debugger.Log(1, "", lines.Last.Value + "\n");
             }
 
             System.IO.File.WriteAllLines(FullPath, lines.ToArray<string>());

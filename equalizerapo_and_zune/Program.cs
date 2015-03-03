@@ -17,10 +17,18 @@ namespace equalizerapo_and_zune
             // check that the Equalizer APO program is installed
             File.GetEqualizerAPOPath();
 
+            // reset the filter upon exiting the program
+            Application.ApplicationExit += ApplicationEnd;
+
             // start the program
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new form_main());
+        }
+
+        private static void ApplicationEnd(object sender, EventArgs e)
+        {
+            equalizerapo_api.SetFilterToNone();
         }
     }
 }
