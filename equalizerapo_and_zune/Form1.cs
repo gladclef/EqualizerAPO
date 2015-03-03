@@ -118,11 +118,9 @@ namespace equalizerapo_and_zune
                 yaxis.Maximum = gainMax;
                 xaxis.Minimum = 1;
                 xaxis.Maximum = filters.Count;
-                // remove grid lines
-                xaxis.MajorGrid.LineDashStyle =
-                    System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
-                yaxis.MajorGrid.LineDashStyle =
-                    System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
+                // make grid lines lighter
+                xaxis.MajorGrid.LineColor = Color.LightGray;
+                yaxis.MajorGrid.LineColor = Color.LightGray;
                 // make graph easier to see
                 series.BorderWidth = 3;
 
@@ -235,6 +233,15 @@ namespace equalizerapo_and_zune
             {
                 eqAPI.ApplyEqualizer(checkbox_apply_equalizer.Checked);
             }
+        }
+
+        private void link_zero_equalizer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            foreach (KeyValuePair<double, Filter> pair in eqAPI.GetFilters())
+            {
+                pair.Value.Gain = 0;
+            }
+            DeferredUpdateAll(sender);
         }
 
         #endregion

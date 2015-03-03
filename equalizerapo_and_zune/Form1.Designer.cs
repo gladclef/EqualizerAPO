@@ -28,12 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
             this.label_current_track = new System.Windows.Forms.Label();
             this.label_artistname_trackname = new System.Windows.Forms.Label();
-            this.linkLabel2 = new System.Windows.Forms.LinkLabel();
+            this.link_zero_equalizer = new System.Windows.Forms.LinkLabel();
             this.button_next = new System.Windows.Forms.Button();
             this.button_previous = new System.Windows.Forms.Button();
             this.chart_filters = new System.Windows.Forms.DataVisualization.Charting.Chart();
@@ -60,19 +60,20 @@
             this.label_artistname_trackname.TabStop = true;
             this.label_artistname_trackname.Text = "Artist Name - Song Title";
             // 
-            // linkLabel2
+            // link_zero_equalizer
             // 
-            this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(9, 230);
-            this.linkLabel2.Name = "linkLabel2";
-            this.linkLabel2.Size = new System.Drawing.Size(93, 17);
-            this.linkLabel2.TabIndex = 2;
-            this.linkLabel2.TabStop = true;
-            this.linkLabel2.Text = "edit equalizer";
+            this.link_zero_equalizer.AutoSize = true;
+            this.link_zero_equalizer.Location = new System.Drawing.Point(9, 261);
+            this.link_zero_equalizer.Name = "link_zero_equalizer";
+            this.link_zero_equalizer.Size = new System.Drawing.Size(98, 17);
+            this.link_zero_equalizer.TabIndex = 2;
+            this.link_zero_equalizer.TabStop = true;
+            this.link_zero_equalizer.Text = "zero equalizer";
+            this.link_zero_equalizer.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.link_zero_equalizer_LinkClicked);
             // 
             // button_next
             // 
-            this.button_next.Location = new System.Drawing.Point(472, 227);
+            this.button_next.Location = new System.Drawing.Point(472, 258);
             this.button_next.Name = "button_next";
             this.button_next.Size = new System.Drawing.Size(75, 23);
             this.button_next.TabIndex = 4;
@@ -82,7 +83,7 @@
             // 
             // button_previous
             // 
-            this.button_previous.Location = new System.Drawing.Point(391, 227);
+            this.button_previous.Location = new System.Drawing.Point(391, 258);
             this.button_previous.Name = "button_previous";
             this.button_previous.Size = new System.Drawing.Size(75, 23);
             this.button_previous.TabIndex = 5;
@@ -94,22 +95,22 @@
             // 
             this.chart_filters.BackImageTransparentColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
             this.chart_filters.BackSecondaryColor = System.Drawing.Color.Red;
-            chartArea1.AxisX.TitleForeColor = System.Drawing.Color.Silver;
-            chartArea1.BorderColor = System.Drawing.Color.Silver;
-            chartArea1.Name = "ChartArea1";
-            this.chart_filters.ChartAreas.Add(chartArea1);
-            legend1.Enabled = false;
-            legend1.ForeColor = System.Drawing.Color.Silver;
-            legend1.Name = "Legend1";
-            this.chart_filters.Legends.Add(legend1);
+            chartArea2.AxisX.TitleForeColor = System.Drawing.Color.Silver;
+            chartArea2.BorderColor = System.Drawing.Color.Silver;
+            chartArea2.Name = "ChartArea1";
+            this.chart_filters.ChartAreas.Add(chartArea2);
+            legend2.Enabled = false;
+            legend2.ForeColor = System.Drawing.Color.Silver;
+            legend2.Name = "Legend1";
+            this.chart_filters.Legends.Add(legend2);
             this.chart_filters.Location = new System.Drawing.Point(12, 20);
             this.chart_filters.Name = "chart_filters";
-            series1.ChartArea = "ChartArea1";
-            series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-            series1.LabelForeColor = System.Drawing.Color.Red;
-            series1.Legend = "Legend1";
-            series1.Name = "Series1";
-            this.chart_filters.Series.Add(series1);
+            series2.ChartArea = "ChartArea1";
+            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series2.LabelForeColor = System.Drawing.Color.Red;
+            series2.Legend = "Legend1";
+            series2.Name = "Series1";
+            this.chart_filters.Series.Add(series2);
             this.chart_filters.Size = new System.Drawing.Size(535, 204);
             this.chart_filters.TabIndex = 6;
             this.chart_filters.Text = "chart1";
@@ -122,7 +123,7 @@
             this.checkbox_apply_equalizer.AutoSize = true;
             this.checkbox_apply_equalizer.Checked = true;
             this.checkbox_apply_equalizer.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(188, 229);
+            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(188, 260);
             this.checkbox_apply_equalizer.Name = "checkbox_apply_equalizer";
             this.checkbox_apply_equalizer.Size = new System.Drawing.Size(128, 21);
             this.checkbox_apply_equalizer.TabIndex = 7;
@@ -133,12 +134,12 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(559, 253);
+            this.ClientSize = new System.Drawing.Size(559, 287);
             this.Controls.Add(this.checkbox_apply_equalizer);
             this.Controls.Add(this.chart_filters);
             this.Controls.Add(this.button_previous);
             this.Controls.Add(this.button_next);
-            this.Controls.Add(this.linkLabel2);
+            this.Controls.Add(this.link_zero_equalizer);
             this.Controls.Add(this.label_artistname_trackname);
             this.Controls.Add(this.label_current_track);
             this.Name = "form_main";
@@ -146,13 +147,14 @@
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
 
         #endregion
 
         private System.Windows.Forms.Label label_current_track;
         private System.Windows.Forms.Label label_artistname_trackname;
-        private System.Windows.Forms.LinkLabel linkLabel2;
+        private System.Windows.Forms.LinkLabel link_zero_equalizer;
         private System.Windows.Forms.Button button_next;
         private System.Windows.Forms.Button button_previous;
         private System.Windows.Forms.DataVisualization.Charting.Chart chart_filters;
