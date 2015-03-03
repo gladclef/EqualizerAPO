@@ -29,7 +29,7 @@ namespace equalizerapo_and_zune
 
             zuneAPI = new ZuneAPI();
             eqAPI = new equalizerapo_api();
-            zuneAPI.TrackChanged += TrackChanged;
+            zuneAPI.TrackChanged += new EventHandler(TrackChanged);
             zuneAPI.Init();
         }
 

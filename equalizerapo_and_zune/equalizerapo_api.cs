@@ -63,7 +63,8 @@ namespace equalizerapo_and_zune
                 track != null)
             {
                 CurrentFile = new File(track);
-                CurrentFile.FileSaved += FileUpdated;
+                CurrentFile.FileSaved += new EventHandler(FileUpdated);
+                PointConfig();
             }
         }
 
