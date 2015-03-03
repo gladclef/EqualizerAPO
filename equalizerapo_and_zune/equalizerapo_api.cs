@@ -10,7 +10,9 @@ namespace equalizerapo_and_zune
     public class equalizerapo_api
     {
         #region fields
-        
+
+        private bool applyEqualizer = true;
+
         #endregion
 
         #region properties
@@ -81,6 +83,7 @@ namespace equalizerapo_and_zune
             {
                 equalizerapo_api.UnsetEqualizer();
             }
+            applyEqualizer = apply;
         }
 
         #endregion
@@ -96,6 +99,10 @@ namespace equalizerapo_and_zune
         {
             // get the equalizer file name
             if (CurrentFile == null && equalizerFilename == null)
+            {
+                return;
+            }
+            if (!applyEqualizer)
             {
                 return;
             }
