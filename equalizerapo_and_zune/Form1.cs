@@ -78,23 +78,41 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                // get the list of frequencies
+                // get the list of filters
                 SortedList<double, Filter> filters = eqAPI.GetFilters();
-                List<double> frequencies = new List<double>();
+
+                // update the equalizer series
+                chart_filters.Series.Clear();
+                System.Windows.Forms.DataVisualization.Charting.Series series =
+                    chart_filters.Series.Add("frequencies");
                 foreach (System.Collections.Generic.KeyValuePair<double, Filter> pair in filters)
                 {
                     Filter filter = pair.Value;
-                    System.Diagnostics.Debugger.Log(1, "", filter.GetFiletypeString() + "\n");
-                    frequencies.Add(filter.frequency);
+                    series.Points.Add(filter.gain);
                 }
 
-                // update the equalizer graph
-                chart_filters.DataSource = frequencies;
+                // change the equalizer graph visually
+                // make it a line graph instead of bar graph
+                series.ChartType =
+                    System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+                // set the range of the axis
                 System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
                     chart_filters.ChartAreas["ChartArea1"].AxisY;
+                System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
+                    chart_filters.ChartAreas["ChartArea1"].AxisX;
                 yaxis.Interval = 10;
                 yaxis.Minimum = -30;
                 yaxis.Maximum = 30;
+                xaxis.Minimum = 1;
+                xaxis.Maximum = filters.Count;
+                // remove grid lines
+                xaxis.MajorGrid.LineDashStyle =
+                    System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
+                yaxis.MajorGrid.LineDashStyle =
+                    System.Windows.Forms.DataVisualization.Charting.ChartDashStyle.NotSet;
+                // make graph easier to see
+                series.BorderWidth = 3;
+
                 chart_filters.DataBind();
             }
         }
@@ -111,7 +129,19 @@ namespace equalizerapo_and_zune
 
         #endregion
 
-        #region delegate classes
+        #region other classes
+
+        public class XY
+        {
+            public double X { get; set; }
+            public double Y { get; set; }
+
+            public XY(double xx, double yy)
+            {
+                X = xx;
+                Y = yy;
+            }
+        }
 
         delegate void SetTextCallback(String text);
         delegate void ButtonAdjustCallback();

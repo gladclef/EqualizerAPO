@@ -91,15 +91,21 @@
             // 
             // chart_filters
             // 
+            this.chart_filters.BackImageTransparentColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+            this.chart_filters.BackSecondaryColor = System.Drawing.Color.Red;
+            chartArea1.AxisX.TitleForeColor = System.Drawing.Color.Silver;
+            chartArea1.BorderColor = System.Drawing.Color.Silver;
             chartArea1.Name = "ChartArea1";
             this.chart_filters.ChartAreas.Add(chartArea1);
             legend1.Enabled = false;
+            legend1.ForeColor = System.Drawing.Color.Silver;
             legend1.Name = "Legend1";
             this.chart_filters.Legends.Add(legend1);
             this.chart_filters.Location = new System.Drawing.Point(12, 20);
             this.chart_filters.Name = "chart_filters";
             series1.ChartArea = "ChartArea1";
             series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series1.LabelForeColor = System.Drawing.Color.Red;
             series1.Legend = "Legend1";
             series1.Name = "Series1";
             this.chart_filters.Series.Add(series1);
