@@ -14,7 +14,8 @@ namespace equalizerapo_and_zune
     {
         #region fields
 
-        public ZuneAPI API;
+        public ZuneAPI zuneAPI;
+        public equalizerapo_api eqAPI;
 
         #endregion
 
@@ -24,9 +25,10 @@ namespace equalizerapo_and_zune
         {
             InitializeComponent();
 
-            API = new ZuneAPI();
-            API.TrackChanged += TrackChanged;
-            API.Init();
+            zuneAPI = new ZuneAPI();
+            eqAPI = new equalizerapo_api();
+            zuneAPI.TrackChanged += TrackChanged;
+            zuneAPI.Init();
         }
 
         public void UpdateTrackTitle(String newTitle)
@@ -54,22 +56,57 @@ namespace equalizerapo_and_zune
 
         private void TrackChanged(object sender, EventArgs e)
         {
-            if (API.CurrentTrack == null)
+            if (zuneAPI.CurrentTrack == null)
             {
                 return;
             }
 
-            UpdateTrackTitle(API.CurrentTrack.GetFullName());
+            eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
+            UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
+            Microsoft.Iris.Application.DeferredInvoke(
+                new Microsoft.Iris.DeferredInvokeHandler(UpdateEqualizer),
+                Microsoft.Iris.DeferredInvokePriority.Normal);
+        }
+
+        private void UpdateEqualizer(object sender)
+        {
+            if (chart_filters.InvokeRequired)
+            {
+                // thread-safe method
+                DeferredInvokeDelegate d = new DeferredInvokeDelegate(UpdateEqualizer);
+                this.Invoke(d, new object[] { sender });
+            }
+            else
+            {
+                // get the list of frequencies
+                SortedList<double, Filter> filters = eqAPI.GetFilters();
+                List<double> frequencies = new List<double>();
+                foreach (System.Collections.Generic.KeyValuePair<double, Filter> pair in filters)
+                {
+                    Filter filter = pair.Value;
+                    System.Diagnostics.Debugger.Log(1, "", filter.GetFiletypeString() + "\n");
+                    frequencies.Add(filter.frequency);
+                }
+
+                // update the equalizer graph
+                chart_filters.DataSource = frequencies;
+                System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
+                    chart_filters.ChartAreas["ChartArea1"].AxisY;
+                yaxis.Interval = 10;
+                yaxis.Minimum = -30;
+                yaxis.Maximum = 30;
+                chart_filters.DataBind();
+            }
         }
 
         private void button_next_Click(object sender, EventArgs e)
         {
-            API.ToNextTrack();
+            zuneAPI.ToNextTrack();
         }
 
         private void button_previous_Click(object sender, EventArgs e)
         {
-            API.ToPreviousTrack();
+            zuneAPI.ToPreviousTrack();
         }
 
         #endregion
@@ -78,6 +115,7 @@ namespace equalizerapo_and_zune
 
         delegate void SetTextCallback(String text);
         delegate void ButtonAdjustCallback();
+        delegate void DeferredInvokeDelegate(object sender);
 
         #endregion
     }

@@ -14,6 +14,10 @@ namespace equalizerapo_and_zune
         [STAThread]
         static void Main()
         {
+            // check that the Equalizer APO program is installed
+            File.GetEqualizerAPOPath();
+
+            // start the program
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new form_main());

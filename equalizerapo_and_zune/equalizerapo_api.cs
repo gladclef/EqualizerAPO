@@ -15,6 +15,7 @@ namespace equalizerapo_and_zune
         #region properties
 
         public static equalizerapo_api Instance { get; private set; }
+        public File CurrentFile { get; private set; }
 
         #endregion
 
@@ -22,8 +23,26 @@ namespace equalizerapo_and_zune
 
         public equalizerapo_api()
         {
-
+            CurrentFile = null;
         }
+
+        public SortedList<double, Filter> GetFilters()
+        {
+            return CurrentFile.ReadFilters();
+        }
+
+        public void UpdateTrack(Track track)
+        {
+            if (CurrentFile == null ||
+                CurrentFile.TrackRef != track)
+            {
+                CurrentFile = new File(track);
+            }
+        }
+
+        #endregion
+
+        #region private methods
 
         #endregion
     }
