@@ -62,26 +62,26 @@ namespace equalizerapo_and_zune
             return true;
         }
 
-        private void ConnectThreadStarter()
+        public void ToNextTrack()
         {
-            // wait for zune to finish loading
-            while (ZuneShell.DefaultInstance == null || PlayerInterop.Instance == null)
-            {
-                Thread.Sleep(100);
-            }
-
-            // bind events
-            Application.DeferredInvoke(new DeferredInvokeHandler(BindEvents), DeferredInvokePriority.Normal);
+            Application.DeferredInvoke(
+                new DeferredInvokeHandler(delegate(object sender)
+                {
+                    if (TransportControls.Instance.Forward.Available)
+                        TransportControls.Instance.Forward.Invoke(InvokePolicy.AsynchronousNormal);
+                }),
+                DeferredInvokePriority.Normal);
         }
 
-        public bool ToNextTrack()
+        public void ToPreviousTrack()
         {
-            return true;
-        }
-
-        public bool ToPreviousTrack()
-        {
-            return true;
+            Application.DeferredInvoke(
+                new DeferredInvokeHandler(delegate(object sender)
+                {
+                    if (TransportControls.Instance.Back.Available)
+                        TransportControls.Instance.Back.Invoke(InvokePolicy.AsynchronousNormal);
+                }),
+                DeferredInvokePriority.Normal);
         }
 
         #endregion
@@ -97,6 +97,18 @@ namespace equalizerapo_and_zune
         private void ZuneThreadStarter()
         {
             ZuneApplication.Launch(null, IntPtr.Zero);
+        }
+
+        private void ConnectThreadStarter()
+        {
+            // wait for zune to finish loading
+            while (ZuneShell.DefaultInstance == null || PlayerInterop.Instance == null)
+            {
+                Thread.Sleep(100);
+            }
+
+            // bind events
+            Application.DeferredInvoke(new DeferredInvokeHandler(BindEvents), DeferredInvokePriority.Normal);
         }
 
         private void TransportPropertyChanged(object sender, PropertyChangedEventArgs e)

@@ -56,10 +56,20 @@ namespace equalizerapo_and_zune
         {
             if (API.CurrentTrack == null)
             {
-
+                return;
             }
 
             UpdateTrackTitle(API.CurrentTrack.Title);
+        }
+
+        private void button_next_Click(object sender, EventArgs e)
+        {
+            API.ToNextTrack();
+        }
+
+        private void button_previous_Click(object sender, EventArgs e)
+        {
+            API.ToPreviousTrack();
         }
 
         #endregion
@@ -67,6 +77,7 @@ namespace equalizerapo_and_zune
         #region delegate classes
 
         delegate void SetTextCallback(String text);
+        delegate void ButtonAdjustCallback();
 
         #endregion
     }

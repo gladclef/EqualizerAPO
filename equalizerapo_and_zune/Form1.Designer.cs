@@ -72,6 +72,7 @@
             this.button_next.TabIndex = 4;
             this.button_next.Text = "Next";
             this.button_next.UseVisualStyleBackColor = true;
+            this.button_next.Click += new System.EventHandler(this.button_next_Click);
             // 
             // button_previous
             // 
@@ -81,6 +82,7 @@
             this.button_previous.TabIndex = 5;
             this.button_previous.Text = "Previous";
             this.button_previous.UseVisualStyleBackColor = true;
+            this.button_previous.Click += new System.EventHandler(this.button_previous_Click);
             // 
             // form_main
             // 
