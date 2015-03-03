@@ -130,11 +130,17 @@ namespace equalizerapo_and_zune
                 double pow = lowN + (highN - lowN) / (numIntervals+1) * i;
                 double freq = Math.Pow(2, pow);
                 double gain = 0;
-                filters.Add(freq,
-                    new Filter(freq, gain, Q));
+                Filter filter = new Filter(freq, gain, Q);
+                filters.Add(freq, filter);
+                filter.FilterChanged += FilterChanged;
             }
 
             return filters;
+        }
+
+        private void FilterChanged(object sender, EventArgs e)
+        {
+            // TODO: save the filter
         }
 
         #endregion

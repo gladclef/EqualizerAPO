@@ -16,7 +16,7 @@ namespace equalizerapo_and_zune
 
         public static equalizerapo_api Instance { get; private set; }
         public File CurrentFile { get; private set; }
-        public double gainMax { get; private set; }
+        public static double GainMax { get; private set; }
 
         #endregion
 
@@ -25,7 +25,23 @@ namespace equalizerapo_and_zune
         public equalizerapo_api()
         {
             CurrentFile = null;
-            gainMax = 30;
+            GainMax = 30;
+        }
+
+        /// <summary>
+        /// Get a singular filter for the equalizer.
+        /// </summary>
+        /// <param name="filterIndex">The index of the filter. Should be 0 <= value < count</param>
+        /// <returns>The filter at the given index or null</returns>
+        public Filter GetFilter(int filterIndex)
+        {
+            if (CurrentFile == null ||
+                filterIndex < 0 ||
+                filterIndex > CurrentFile.ReadFilters().Count - 1)
+            {
+                return null;
+            }
+            return CurrentFile.ReadFilters().ElementAt(filterIndex).Value;
         }
 
         public SortedList<double, Filter> GetFilters()

@@ -56,6 +56,18 @@ namespace equalizerapo_and_zune
 
         private void TrackChanged(object sender, EventArgs e)
         {
+            DeferredUpdateAll(sender);
+        }
+
+        private void DeferredUpdateAll(object sender)
+        {
+            Microsoft.Iris.Application.DeferredInvoke(
+                new Microsoft.Iris.DeferredInvokeHandler(UpdateAll),
+                Microsoft.Iris.DeferredInvokePriority.Normal);
+        }
+
+        private void UpdateAll(object sender)
+        {
             if (zuneAPI.CurrentTrack == null)
             {
                 return;
@@ -63,9 +75,7 @@ namespace equalizerapo_and_zune
 
             eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
-            Microsoft.Iris.Application.DeferredInvoke(
-                new Microsoft.Iris.DeferredInvokeHandler(UpdateEqualizer),
-                Microsoft.Iris.DeferredInvokePriority.Normal);
+            UpdateEqualizer(sender);
         }
 
         private void UpdateEqualizer(object sender)
@@ -88,7 +98,7 @@ namespace equalizerapo_and_zune
                 foreach (System.Collections.Generic.KeyValuePair<double, Filter> pair in filters)
                 {
                     Filter filter = pair.Value;
-                    series.Points.Add(filter.gain);
+                    series.Points.Add(filter.Gain);
                 }
 
                 // change the equalizer graph visually
@@ -96,7 +106,7 @@ namespace equalizerapo_and_zune
                 series.ChartType =
                     System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
                 // set the range of the axis
-                double gainMax = eqAPI.gainMax;
+                double gainMax = equalizerapo_api.GainMax;
                 System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
                     chart_filters.ChartAreas["ChartArea1"].AxisY;
                 System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
@@ -157,7 +167,7 @@ namespace equalizerapo_and_zune
                 return;
             }
 
-            double gainMax = eqAPI.gainMax;
+            double gainMax = equalizerapo_api.GainMax;
             double filterCount = eqAPI.GetFilters().Count;
 
             // bounding box constant, determined experimentally
@@ -196,6 +206,13 @@ namespace equalizerapo_and_zune
                 filterIndex /= 2;
             }
 
+            // update the filter
+            Filter filter = eqAPI.GetFilter(filterIndex);
+            if (filter != null)
+            {
+                filter.Gain = gain;
+                DeferredUpdateAll(this);
+            }
         }
     }
 }
