@@ -28,11 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             this.label_current_track = new System.Windows.Forms.Label();
-            this.artistname_trackname_link = new System.Windows.Forms.LinkLabel();
+            this.label_artistname_trackname = new System.Windows.Forms.Label();
             this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.button_next = new System.Windows.Forms.Button();
             this.button_previous = new System.Windows.Forms.Button();
@@ -46,19 +46,19 @@
             this.label_current_track.AutoSize = true;
             this.label_current_track.Location = new System.Drawing.Point(9, 0);
             this.label_current_track.Name = "label_current_track";
-            this.label_current_track.Size = new System.Drawing.Size(95, 17);
+            this.label_current_track.Size = new System.Drawing.Size(99, 17);
             this.label_current_track.TabIndex = 0;
-            this.label_current_track.Text = "Current Track";
+            this.label_current_track.Text = "Current Track:";
             // 
-            // artistname_trackname_link
+            // label_artistname_trackname
             // 
-            this.artistname_trackname_link.AutoSize = true;
-            this.artistname_trackname_link.Location = new System.Drawing.Point(110, 0);
-            this.artistname_trackname_link.Name = "artistname_trackname_link";
-            this.artistname_trackname_link.Size = new System.Drawing.Size(158, 17);
-            this.artistname_trackname_link.TabIndex = 1;
-            this.artistname_trackname_link.TabStop = true;
-            this.artistname_trackname_link.Text = "Artist Name - Song Title";
+            this.label_artistname_trackname.AutoSize = true;
+            this.label_artistname_trackname.Location = new System.Drawing.Point(110, 0);
+            this.label_artistname_trackname.Name = "label_artistname_trackname";
+            this.label_artistname_trackname.Size = new System.Drawing.Size(158, 17);
+            this.label_artistname_trackname.TabIndex = 1;
+            this.label_artistname_trackname.TabStop = true;
+            this.label_artistname_trackname.Text = "Artist Name - Song Title";
             // 
             // linkLabel2
             // 
@@ -94,22 +94,22 @@
             // 
             this.chart_filters.BackImageTransparentColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
             this.chart_filters.BackSecondaryColor = System.Drawing.Color.Red;
-            chartArea2.AxisX.TitleForeColor = System.Drawing.Color.Silver;
-            chartArea2.BorderColor = System.Drawing.Color.Silver;
-            chartArea2.Name = "ChartArea1";
-            this.chart_filters.ChartAreas.Add(chartArea2);
-            legend2.Enabled = false;
-            legend2.ForeColor = System.Drawing.Color.Silver;
-            legend2.Name = "Legend1";
-            this.chart_filters.Legends.Add(legend2);
+            chartArea1.AxisX.TitleForeColor = System.Drawing.Color.Silver;
+            chartArea1.BorderColor = System.Drawing.Color.Silver;
+            chartArea1.Name = "ChartArea1";
+            this.chart_filters.ChartAreas.Add(chartArea1);
+            legend1.Enabled = false;
+            legend1.ForeColor = System.Drawing.Color.Silver;
+            legend1.Name = "Legend1";
+            this.chart_filters.Legends.Add(legend1);
             this.chart_filters.Location = new System.Drawing.Point(12, 20);
             this.chart_filters.Name = "chart_filters";
-            series2.ChartArea = "ChartArea1";
-            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-            series2.LabelForeColor = System.Drawing.Color.Red;
-            series2.Legend = "Legend1";
-            series2.Name = "Series1";
-            this.chart_filters.Series.Add(series2);
+            series1.ChartArea = "ChartArea1";
+            series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series1.LabelForeColor = System.Drawing.Color.Red;
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            this.chart_filters.Series.Add(series1);
             this.chart_filters.Size = new System.Drawing.Size(535, 204);
             this.chart_filters.TabIndex = 6;
             this.chart_filters.Text = "chart1";
@@ -128,7 +128,6 @@
             this.checkbox_apply_equalizer.TabIndex = 7;
             this.checkbox_apply_equalizer.Text = "Apply Equalizer";
             this.checkbox_apply_equalizer.UseVisualStyleBackColor = true;
-            this.checkbox_apply_equalizer.CheckedChanged += checkbox_apply_equalizer_CheckedChanged;
             // 
             // form_main
             // 
@@ -140,20 +139,19 @@
             this.Controls.Add(this.button_previous);
             this.Controls.Add(this.button_next);
             this.Controls.Add(this.linkLabel2);
-            this.Controls.Add(this.artistname_trackname_link);
+            this.Controls.Add(this.label_artistname_trackname);
             this.Controls.Add(this.label_current_track);
             this.Name = "form_main";
             this.Text = "EqualizerAPO and Zune";
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
 
         #endregion
 
         private System.Windows.Forms.Label label_current_track;
-        private System.Windows.Forms.LinkLabel artistname_trackname_link;
+        private System.Windows.Forms.Label label_artistname_trackname;
         private System.Windows.Forms.LinkLabel linkLabel2;
         private System.Windows.Forms.Button button_next;
         private System.Windows.Forms.Button button_previous;

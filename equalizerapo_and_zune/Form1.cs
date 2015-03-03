@@ -40,7 +40,7 @@ namespace equalizerapo_and_zune
                 return;
             }
 
-            if (artistname_trackname_link.InvokeRequired)
+            if (label_artistname_trackname.InvokeRequired)
             {
                 // thread-safe callback
                 SetTextCallback d = new SetTextCallback(UpdateTrackTitle);
@@ -48,7 +48,7 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                artistname_trackname_link.Text = newTitle;
+                label_artistname_trackname.Text = newTitle;
             }
         }
 
