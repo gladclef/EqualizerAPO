@@ -28,7 +28,7 @@ namespace equalizerapo_and_zune
         public equalizerapo_api()
         {
             CurrentFile = null;
-            GainMax = 30;
+            GainMax = 15;
         }
 
         /// <summary>
