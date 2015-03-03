@@ -39,8 +39,12 @@ namespace equalizerapo_and_zune
         public File(Track track)
         {
             TrackRef = track;
-            FullPath = GetEqualizerAPOPath() + "config\\" +
-                TrackRef.GetFullName() + ".e2z";
+            FullPath = GetEqualizerAPOPath() + "config\\" + GetEqualizerFilename();
+            ReadFilters();
+        }
+
+        public String GetEqualizerFilename() {
+            return "e2z_" + TrackRef.GetFullName() + ".txt";
         }
 
         public SortedList<double, Filter> ReadFilters()
@@ -58,6 +62,7 @@ namespace equalizerapo_and_zune
             if (!System.IO.File.Exists(FullPath)) {
                 // default set of filters, spread evenly over the spectrum
                 CurrentFilters = GenerateFilters(5);
+                SaveFile();
                 return CurrentFilters;
             }
 
@@ -65,14 +70,17 @@ namespace equalizerapo_and_zune
             // example line to read:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
             Regex getNums = new Regex("[0-9]+,[0-9]+", RegexOptions.Compiled);
+            System.Globalization.NumberFormatInfo provider = new System.Globalization.NumberFormatInfo();
+            provider.NumberDecimalSeparator = ",";
+            provider.NumberGroupSeparator = "";
             foreach (string line in System.IO.File.ReadLines(FullPath)) {
                 MatchCollection nums = getNums.Matches(line);
                 // only match lines that have exactly three decimal-style numbers on them
                 if (nums.Count == 3)
                 {
-                    double freq = Convert.ToDouble(nums[0].Value);
-                    double gain = Convert.ToDouble(nums[1].Value);
-                    double Q = Convert.ToDouble(nums[1].Value);
+                    double freq = Convert.ToDouble(nums[0].Value, provider);
+                    double gain = Convert.ToDouble(nums[1].Value, provider);
+                    double Q = Convert.ToDouble(nums[1].Value, provider);
                     filters.Add(freq,
                         new Filter(freq, gain, Q));
                 }
@@ -127,7 +135,7 @@ namespace equalizerapo_and_zune
             SortedList<double, Filter> filters = new SortedList<double, Filter>();
             for (int i = 1; i <= numIntervals; i++)
             {
-                double pow = lowN + (highN - lowN) / (numIntervals+1) * i;
+                double pow = lowN + (highN - lowN) / (numIntervals + 1) * i;
                 double freq = Math.Pow(2, pow);
                 double gain = 0;
                 Filter filter = new Filter(freq, gain, Q);
@@ -140,7 +148,24 @@ namespace equalizerapo_and_zune
 
         private void FilterChanged(object sender, EventArgs e)
         {
-            // TODO: save the filter
+            SaveFile();
+        }
+
+        private void SaveFile()
+        {
+            LinkedList<string> lines = new LinkedList<string>();
+
+            // write out each filter
+            // example filter:
+            //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
+            for (int i = 0; i < CurrentFilters.Count; i++)
+            {
+                Filter filter = CurrentFilters.ElementAt(i).Value;
+                lines.AddLast(String.Format("Filter {0}: ON  PK       {1}",
+                    i.ToString().PadLeft(2), filter.GetFiletypeString()));
+            }
+
+            System.IO.File.WriteAllLines(FullPath, lines.ToArray<string>());
         }
 
         #endregion

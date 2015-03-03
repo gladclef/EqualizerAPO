@@ -55,9 +55,9 @@ namespace equalizerapo_and_zune
         {
             // example line:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
-            return "Fc " + FormatNumber(Frequency).PadLeft(7) + " Hz  " +
-                "Gain " + FormatNumber(Gain).PadLeft(5) + " db  " +
-                "Q " + FormatNumber(Q).PadLeft(5);
+            return "Fc " + FormatNumber(Frequency).PadLeft(8) + " Hz  " +
+                "Gain " + FormatNumber(Gain).PadLeft(6) + " dB  " +
+                "Q " + FormatNumber(Q).PadLeft(6);
         }
 
         #endregion
