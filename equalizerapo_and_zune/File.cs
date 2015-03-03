@@ -75,7 +75,7 @@ namespace equalizerapo_and_zune
             // parse the file to get the filters
             // example line to read:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
-            Regex getNums = new Regex("[0-9]+,[0-9]+", RegexOptions.Compiled);
+            Regex getNums = new Regex("-?[0-9]+,[0-9]+", RegexOptions.Compiled);
             System.Globalization.NumberFormatInfo provider = new System.Globalization.NumberFormatInfo();
             provider.NumberDecimalSeparator = ",";
             provider.NumberGroupSeparator = "";
@@ -119,6 +119,32 @@ namespace equalizerapo_and_zune
             throw new FileNotFoundException("Mising necessary application at " +
                 path1 + ". Go to http://sourceforge.net/projects/equalizerapo/ to install the application.",
                 path1);
+        }
+
+        public static void WriteAllLines(String path, string[] lines)
+        {
+            File.WriteAllLines(path, lines, 0);
+        }
+
+        public static void WriteAllLines(String path, string[] lines, int depth)
+        {
+            if (depth > 50)
+            {
+                // don't catch exception anymore
+                System.IO.File.WriteAllLines(path, lines);
+                return;
+            }
+
+            try
+            {
+                System.IO.File.WriteAllLines(path, lines);
+            }
+            catch (System.IO.IOException)
+            {
+                System.Threading.Thread.Sleep(100);
+                // maybe I should do something here?
+                File.WriteAllLines(path, lines);
+            }
         }
 
         #endregion
@@ -174,7 +200,7 @@ namespace equalizerapo_and_zune
                 System.Diagnostics.Debugger.Log(1, "", lines.Last.Value + "\n");
             }
 
-            System.IO.File.WriteAllLines(FullPath, lines.ToArray<string>());
+            File.WriteAllLines(FullPath, lines.ToArray<string>());
 
             if (FileSaved != null)
             {

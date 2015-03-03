@@ -123,9 +123,7 @@ namespace equalizerapo_and_zune
             }
 
             // write the include to the config file
-            System.IO.File.WriteAllLines(
-                configPath,
-                new string[] { "Include: " + equalizerFilename });
+            File.WriteAllLines(configPath, new string[] { "Include: " + equalizerFilename });
         }
 
         private void FileUpdated(object sender, EventArgs e)
