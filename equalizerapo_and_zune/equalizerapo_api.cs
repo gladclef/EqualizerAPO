@@ -61,19 +61,36 @@ namespace equalizerapo_and_zune
                 track != null)
             {
                 CurrentFile = new File(track);
-                PointConfig(null);
+                CurrentFile.FileSaved += FileUpdated;
             }
         }
 
-        public static void SetFilterToNone()
+        public static void UnsetEqualizer()
         {
             equalizerapo_api eqAPI = new equalizerapo_api();
             eqAPI.PointConfig("none.txt");
         }
 
+        public void ApplyEqualizer(bool apply)
+        {
+            if (apply)
+            {
+                PointConfig();
+            }
+            else
+            {
+                equalizerapo_api.UnsetEqualizer();
+            }
+        }
+
         #endregion
 
         #region private methods
+
+        private void PointConfig()
+        {
+            PointConfig(null);
+        }
 
         private void PointConfig(String equalizerFilename)
         {
@@ -101,6 +118,11 @@ namespace equalizerapo_and_zune
             System.IO.File.WriteAllLines(
                 configPath,
                 new string[] { "Include: " + equalizerFilename });
+        }
+
+        private void FileUpdated(object sender, EventArgs e)
+        {
+            PointConfig();
         }
 
         #endregion

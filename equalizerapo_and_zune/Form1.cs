@@ -16,6 +16,8 @@ namespace equalizerapo_and_zune
 
         public ZuneAPI zuneAPI;
         public equalizerapo_api eqAPI;
+        private int previousFilterIndex;
+        private bool mousePressed = false;
 
         #endregion
 
@@ -138,49 +140,50 @@ namespace equalizerapo_and_zune
             zuneAPI.ToPreviousTrack();
         }
 
-        #endregion
-
-        #region other classes
-
-        public class XY
+        private void chart_filters_MouseMove(object sender, MouseEventArgs e)
         {
-            public double X { get; set; }
-            public double Y { get; set; }
-
-            public XY(double xx, double yy)
-            {
-                X = xx;
-                Y = yy;
-            }
-        }
-
-        delegate void SetTextCallback(String text);
-        delegate void ButtonAdjustCallback();
-        delegate void DeferredInvokeDelegate(object sender);
-
-        #endregion
-
-        private void chart_filters_Click(object sender, EventArgs e)
-        {
-            if (e.GetType() != typeof(MouseEventArgs))
+            if (!mousePressed)
             {
                 return;
             }
 
+            chart_filters_Click(sender, e, previousFilterIndex);
+        }
+
+        private void chart_filters_MouseUp(object sender, MouseEventArgs e)
+        {
+            System.Diagnostics.Debugger.Log(1, "", "released!\n");
+            mousePressed = false;
+        }
+
+        private void chart_filters_Click(object sender, MouseEventArgs e)
+        {
+            chart_filters_Click(sender, e, -1);
+            System.Diagnostics.Debugger.Log(1, "", "pressed!\n");
+            mousePressed = true;
+        }
+
+        /// <summary>
+        /// Adjusts the gain based on which filter is clicked.
+        /// </summary>
+        /// <param name="sender">sender object</param>
+        /// <param name="e">mouse event</param>
+        /// <param name="filterIndex">if -1, then computer filter index</param>
+        private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex)
+        {
             double gainMax = equalizerapo_api.GainMax;
             double filterCount = eqAPI.GetFilters().Count;
 
             // bounding box constant, determined experimentally
-            double[,] bb = { {50, 15}, {380, 133} };
-            double xRange = bb[1,0] - bb[0,0];
-            double yRange = bb[1,1] - bb[0,1];
+            double[,] bb = { { 50, 15 }, { 380, 133 } };
+            double xRange = bb[1, 0] - bb[0, 0];
+            double yRange = bb[1, 1] - bb[0, 1];
 
             // {X,Y}, relative to the series area
-            MouseEventArgs m = (MouseEventArgs)e;
-            double x = m.X - bb[0,0];
-            double y = m.Y - bb[0,1];
+            double x = e.X - bb[0, 0];
+            double y = e.Y - bb[0, 1];
 
-            // determine the gain and filter of the click
+            // determine the gain
             double xRatio =
                 Math.Max(
                     Math.Min(
@@ -194,17 +197,23 @@ namespace equalizerapo_and_zune
                         1),
                     0);
             double gain = gainMax - (2 * gainMax) * (yRatio);
-            int filterIndex = Convert.ToInt32(xRatio * filterCount);
-            if (filterCount >= 3)
+
+            // determine the filter index
+            if (filterIndex == -1)
             {
-                double numRegions = filterCount * 2 - 2;
-                filterIndex = Convert.ToInt32(Math.Floor(xRatio * numRegions));
-                if (filterIndex % 2 == 1)
+                filterIndex = Convert.ToInt32(xRatio * filterCount);
+                if (filterCount >= 3)
                 {
-                    filterIndex += 1;
+                    double numRegions = filterCount * 2 - 2;
+                    filterIndex = Convert.ToInt32(Math.Floor(xRatio * numRegions));
+                    if (filterIndex % 2 == 1)
+                    {
+                        filterIndex += 1;
+                    }
+                    filterIndex /= 2;
                 }
-                filterIndex /= 2;
             }
+            previousFilterIndex = filterIndex;
 
             // update the filter
             Filter filter = eqAPI.GetFilter(filterIndex);
@@ -214,5 +223,29 @@ namespace equalizerapo_and_zune
                 DeferredUpdateAll(this);
             }
         }
+
+        private void checkbox_apply_equalizer_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkbox_apply_equalizer.InvokeRequired)
+            {
+                EventInvokeDelegate d = new EventInvokeDelegate(checkbox_apply_equalizer_CheckedChanged);
+                this.Invoke(d, new object[] { sender, e });
+            }
+            else
+            {
+                eqAPI.ApplyEqualizer(checkbox_apply_equalizer.Checked);
+            }
+        }
+
+        #endregion
+
+        #region delegate classes
+
+        delegate void SetTextCallback(String text);
+        delegate void ButtonAdjustCallback();
+        delegate void DeferredInvokeDelegate(object sender);
+        delegate void EventInvokeDelegate(object sender, EventArgs e);
+
+        #endregion
     }
 }

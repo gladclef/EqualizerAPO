@@ -27,6 +27,12 @@ namespace equalizerapo_and_zune
 
         #endregion
 
+        #region event handlers
+
+        public EventHandler FileSaved;
+
+        #endregion
+
         #region public methods
 
         public File()
@@ -169,6 +175,11 @@ namespace equalizerapo_and_zune
             }
 
             System.IO.File.WriteAllLines(FullPath, lines.ToArray<string>());
+
+            if (FileSaved != null)
+            {
+                FileSaved(this, EventArgs.Empty);
+            }
         }
 
         #endregion

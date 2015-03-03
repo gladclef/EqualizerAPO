@@ -28,7 +28,7 @@ namespace equalizerapo_and_zune
 
         private static void ApplicationEnd(object sender, EventArgs e)
         {
-            equalizerapo_api.SetFilterToNone();
+            equalizerapo_api.UnsetEqualizer();
         }
     }
 }
