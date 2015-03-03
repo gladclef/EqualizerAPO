@@ -59,7 +59,7 @@ namespace equalizerapo_and_zune
                 return;
             }
 
-            UpdateTrackTitle(API.CurrentTrack.Title);
+            UpdateTrackTitle(API.CurrentTrack.GetFullName());
         }
 
         private void button_next_Click(object sender, EventArgs e)
