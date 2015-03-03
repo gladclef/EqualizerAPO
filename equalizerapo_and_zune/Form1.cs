@@ -96,13 +96,14 @@ namespace equalizerapo_and_zune
                 series.ChartType =
                     System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
                 // set the range of the axis
+                double gainMax = eqAPI.gainMax;
                 System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
                     chart_filters.ChartAreas["ChartArea1"].AxisY;
                 System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
                     chart_filters.ChartAreas["ChartArea1"].AxisX;
-                yaxis.Interval = 10;
-                yaxis.Minimum = -30;
-                yaxis.Maximum = 30;
+                yaxis.Interval = gainMax / 3;
+                yaxis.Minimum = -gainMax;
+                yaxis.Maximum = gainMax;
                 xaxis.Minimum = 1;
                 xaxis.Maximum = filters.Count;
                 // remove grid lines
@@ -148,5 +149,53 @@ namespace equalizerapo_and_zune
         delegate void DeferredInvokeDelegate(object sender);
 
         #endregion
+
+        private void chart_filters_Click(object sender, EventArgs e)
+        {
+            if (e.GetType() != typeof(MouseEventArgs))
+            {
+                return;
+            }
+
+            double gainMax = eqAPI.gainMax;
+            double filterCount = eqAPI.GetFilters().Count;
+
+            // bounding box constant, determined experimentally
+            double[,] bb = { {50, 15}, {380, 133} };
+            double xRange = bb[1,0] - bb[0,0];
+            double yRange = bb[1,1] - bb[0,1];
+
+            // {X,Y}, relative to the series area
+            MouseEventArgs m = (MouseEventArgs)e;
+            double x = m.X - bb[0,0];
+            double y = m.Y - bb[0,1];
+
+            // determine the gain and filter of the click
+            double xRatio =
+                Math.Max(
+                    Math.Min(
+                        x / xRange,
+                        1),
+                    0);
+            double yRatio =
+                Math.Max(
+                    Math.Min(
+                        y / yRange,
+                        1),
+                    0);
+            double gain = gainMax - (2 * gainMax) * (yRatio);
+            int filterIndex = Convert.ToInt32(xRatio * filterCount);
+            if (filterCount >= 3)
+            {
+                double numRegions = filterCount * 2 - 2;
+                filterIndex = Convert.ToInt32(Math.Floor(xRatio * numRegions));
+                if (filterIndex % 2 == 1)
+                {
+                    filterIndex += 1;
+                }
+                filterIndex /= 2;
+            }
+
+        }
     }
 }

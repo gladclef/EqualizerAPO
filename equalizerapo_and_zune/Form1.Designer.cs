@@ -112,6 +112,8 @@
             this.chart_filters.Size = new System.Drawing.Size(535, 204);
             this.chart_filters.TabIndex = 6;
             this.chart_filters.Text = "chart1";
+            this.chart_filters.MouseMove += new System.Windows.Forms.MouseEventHandler(this.chart_filters_Click);
+            this.chart_filters.Click += new System.EventHandler(this.chart_filters_Click);
             // 
             // form_main
             // 
