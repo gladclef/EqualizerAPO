@@ -108,6 +108,7 @@ namespace equalizerapo_and_zune
                 Dictionary<string, double> filterParameters =
                     Filter.GenerateFilterParameters(filters.Count - 1, i);
                 filter.Frequency = filterParameters["frequency"];
+                filter.Q = filterParameters["Q"];
             }
 
             // remove last filter
@@ -129,6 +130,7 @@ namespace equalizerapo_and_zune
                 filter = filters.ElementAt(i).Value;
                 filterParameters = Filter.GenerateFilterParameters(filters.Count + 1, i);
                 filter.Frequency = filterParameters["frequency"];
+                filter.Q = filterParameters["Q"];
             }
 
             // add new filter

@@ -10,13 +10,31 @@ namespace equalizerapo_and_zune
     {
         #region fields
 
+        /// <summary>
+        /// the gain on the filter
+        /// </summary>
         private double gain;
+
+        /// <summary>
+        /// the center frequency of the filter
+        /// </summary>
         private double frequency;
+
+        /// <summary>
+        /// The Q value for the filter.
+        /// </summary>
+        private double q;
 
         #endregion
 
         #region properties
 
+        /// <summary>
+        /// The public interface to the private frequency value.
+        /// get: straight forward
+        /// set: caps the value between 20 and 20,000 and makes
+        ///     a call to the <see cref="FilterChanged"/> event
+        /// </summary>
         public double Frequency {
             get { return frequency; }
             set
@@ -34,6 +52,13 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// The public interface to the private frequency value.
+        /// get: straight forward
+        /// set: caps the value between -15 and 15
+        ///     (from the <see cref="equalizerapo_api.GainMax"/>) and
+        ///     makes a call to the <see cref="FilterChanged"/> event
+        /// </summary>
         public double Gain {
             get { return gain; }
             set {
@@ -50,18 +75,50 @@ namespace equalizerapo_and_zune
             }
         }
 
-        public double Q { get; private set; }
+        /// <summary>
+        /// The public interface to the private frequency value.
+        /// get: straight forward
+        /// set: caps the value between 0.5 and 10
+        ///     (from the number of octaves) and
+        ///     makes a call to the <see cref="FilterChanged"/> event
+        /// </summary>
+        public double Q
+        {
+            get { return q; }
+            set
+            {
+                q = Math.Max(
+                        Math.Min(
+                            value,
+                            14),
+                        0.5);
+                if (FilterChanged != null)
+                {
+                    FilterChanged(this, EventArgs.Empty);
+                }
+            }
+        }
 
         #endregion
 
         #region event handlers
 
+        /// <summary>
+        /// An event handler that gets triggered every time the filter
+        /// parameters are changed.
+        /// </summary>
         public EventHandler FilterChanged;
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Create a new filter.
+        /// </summary>
+        /// <param name="freq">The filter frequency.</param>
+        /// <param name="gain">The filter gain.</param>
+        /// <param name="Q">The filter Q.</param>
         public Filter(double freq, double gain, double Q)
         {
             this.Frequency = freq;
@@ -69,6 +126,12 @@ namespace equalizerapo_and_zune
             this.Q = Q;
         }
 
+        /// <summary>
+        /// Uses <see cref="FormatNumber"/> to create a string that contains
+        /// all of the filter parameters, in a format useful for the
+        /// equalizerapo program.
+        /// </summary>
+        /// <returns>A string with the filter parameters for equalizerapo.</returns>
         public String GetFiletypeString()
         {
             // example line:
@@ -82,6 +145,14 @@ namespace equalizerapo_and_zune
 
         #region public static methods
 
+        /// <summary>
+        /// Generates the necessary parameters for a filter at the given index (0 based)
+        /// when there are going to be a total of numIntervals filters generated.
+        /// </summary>
+        /// <param name="numIntervals">The total number of filters to be generated.</param>
+        /// <param name="filterIndex">Index of filter to be generated (0 based).</param>
+        /// <returns>The "frequency", "gain", and "Q" parameters that would
+        ///          be used for a new filter.</returns>
         public static Dictionary<string,double> GenerateFilterParameters(int numIntervals, int filterIndex)
         {
             double lowN = Math.Log(20, 2);
