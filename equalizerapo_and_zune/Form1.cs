@@ -237,10 +237,7 @@ namespace equalizerapo_and_zune
 
         private void link_zero_equalizer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            foreach (KeyValuePair<double, Filter> pair in eqAPI.GetFilters())
-            {
-                pair.Value.Gain = 0;
-            }
+            eqAPI.ZeroOutEqualizer();
             DeferredUpdateAll(sender);
         }
 

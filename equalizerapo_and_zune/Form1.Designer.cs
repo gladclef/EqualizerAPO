@@ -129,6 +129,7 @@
             this.checkbox_apply_equalizer.TabIndex = 7;
             this.checkbox_apply_equalizer.Text = "Apply Equalizer";
             this.checkbox_apply_equalizer.UseVisualStyleBackColor = true;
+            this.checkbox_apply_equalizer.CheckedChanged += new System.EventHandler(checkbox_apply_equalizer_CheckedChanged);
             // 
             // form_main
             // 

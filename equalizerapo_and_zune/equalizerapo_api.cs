@@ -76,6 +76,8 @@ namespace equalizerapo_and_zune
 
         public void ApplyEqualizer(bool apply)
         {
+            System.Diagnostics.Debugger.Log(1, "", "Applying equalizer\n");
+            applyEqualizer = apply;
             if (apply)
             {
                 PointConfig();
@@ -84,7 +86,14 @@ namespace equalizerapo_and_zune
             {
                 equalizerapo_api.UnsetEqualizer();
             }
-            applyEqualizer = apply;
+        }
+
+        public void ZeroOutEqualizer()
+        {
+            foreach (KeyValuePair<double, Filter> pair in CurrentFile.ReadFilters())
+            {
+                pair.Value.Gain = 0;
+            }
         }
 
         #endregion

@@ -191,13 +191,11 @@ namespace equalizerapo_and_zune
             // write out each filter
             // example filter:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
-            System.Diagnostics.Debugger.Log(1, "", String.Format("Saving file {0} with filters:\n", FullPath));
             for (int i = 0; i < CurrentFilters.Count; i++)
             {
                 Filter filter = CurrentFilters.ElementAt(i).Value;
                 lines.AddLast(String.Format("Filter {0}: ON  PK       {1}",
                     i.ToString().PadLeft(2), filter.GetFiletypeString()));
-                System.Diagnostics.Debugger.Log(1, "", lines.Last.Value + "\n");
             }
 
             File.WriteAllLines(FullPath, lines.ToArray<string>());
