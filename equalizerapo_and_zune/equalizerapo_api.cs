@@ -76,7 +76,6 @@ namespace equalizerapo_and_zune
 
         public void ApplyEqualizer(bool apply)
         {
-            System.Diagnostics.Debugger.Log(1, "", "Applying equalizer\n");
             applyEqualizer = apply;
             if (apply)
             {
@@ -94,6 +93,16 @@ namespace equalizerapo_and_zune
             {
                 pair.Value.Gain = 0;
             }
+        }
+
+        public void RemoveFilter()
+        {
+            CurrentFile.RemoveFilter();
+        }
+
+        public void AddFilter()
+        {
+            CurrentFile.AddFilter();
         }
 
         #endregion

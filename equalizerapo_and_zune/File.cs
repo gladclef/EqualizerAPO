@@ -97,6 +97,52 @@ namespace equalizerapo_and_zune
             return filters;
         }
 
+        public void RemoveFilter()
+        {
+            SortedList<double, Filter> filters = CurrentFilters;
+
+            // adjust old filters
+            for (int i = 0; i < filters.Count; i++)
+            {
+                Filter filter = filters.ElementAt(i).Value;
+                Dictionary<string, double> filterParameters =
+                    Filter.GenerateFilterParameters(filters.Count - 1, i);
+                filter.Frequency = filterParameters["frequency"];
+            }
+
+            // remove last filter
+            filters.RemoveAt(filters.Count - 1);
+
+            // save the new set of filters
+            SaveFile();
+        }
+
+        public void AddFilter()
+        {
+            Filter filter = null;
+            Dictionary<string, double> filterParameters = null;
+            SortedList<double, Filter> filters = CurrentFilters;
+
+            // adjust old filters
+            for (int i = 0; i < filters.Count; i++)
+            {
+                filter = filters.ElementAt(i).Value;
+                filterParameters = Filter.GenerateFilterParameters(filters.Count + 1, i);
+                filter.Frequency = filterParameters["frequency"];
+            }
+
+            // add new filter
+            filterParameters = Filter.GenerateFilterParameters(filters.Count + 1, filters.Count);
+            filter = new Filter(
+                filterParameters["frequency"],
+                filterParameters["gain"],
+                filterParameters["Q"]);
+            filters.Add(filter.Frequency, filter);
+
+            // save the new set of filters
+            SaveFile();
+        }
+
         public static String GetEqualizerAPOPath() {
             if (FullPathFound != null)
             {
@@ -159,18 +205,14 @@ namespace equalizerapo_and_zune
         /// <returns>An evenly spaced generated set of filters</returns>
         private SortedList<double, Filter> GenerateFilters(int numIntervals)
         {
-            double lowN = Math.Log(20, 2);
-            double highN = Math.Log(20000, 2);
-            double totalOctaves = highN - lowN;
-            double octaveRange = totalOctaves / numIntervals;
-            double Q = octaveRange * 1.2;
-            
             SortedList<double, Filter> filters = new SortedList<double, Filter>();
             for (int i = 1; i <= numIntervals; i++)
             {
-                double pow = lowN + (highN - lowN) / (numIntervals + 1) * i;
-                double freq = Math.Pow(2, pow);
-                double gain = 0;
+                Dictionary<string,double> filterParameters = 
+                    Filter.GenerateFilterParameters(numIntervals, i - 1);
+                double freq = filterParameters["frequency"];
+                double gain = filterParameters["gain"];
+                double Q = filterParameters["Q"];
                 Filter filter = new Filter(freq, gain, Q);
                 filters.Add(freq, filter);
                 filter.FilterChanged += FilterChanged;

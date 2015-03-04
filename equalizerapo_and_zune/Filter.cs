@@ -11,12 +11,29 @@ namespace equalizerapo_and_zune
         #region fields
 
         private double gain;
+        private double frequency;
 
         #endregion
 
         #region properties
 
-        public double Frequency { get; private set; }
+        public double Frequency {
+            get { return frequency; }
+            set
+            {
+                frequency =
+                    Math.Max(
+                        Math.Min(
+                            value,
+                            20000),
+                        20);
+                if (FilterChanged != null)
+                {
+                    FilterChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         public double Gain {
             get { return gain; }
             set {
@@ -32,6 +49,7 @@ namespace equalizerapo_and_zune
                 }
             }
         }
+
         public double Q { get; private set; }
 
         #endregion
@@ -58,6 +76,28 @@ namespace equalizerapo_and_zune
             return "Fc " + FormatNumber(Frequency).PadLeft(8) + " Hz  " +
                 "Gain " + FormatNumber(Gain).PadLeft(6) + " dB  " +
                 "Q " + FormatNumber(Q).PadLeft(6);
+        }
+
+        #endregion
+
+        #region public static methods
+
+        public static Dictionary<string,double> GenerateFilterParameters(int numIntervals, int filterIndex)
+        {
+            double lowN = Math.Log(20, 2);
+            double highN = Math.Log(20000, 2);
+            double totalOctaves = highN - lowN;
+            double octaveRange = totalOctaves / numIntervals;
+            double Q = octaveRange * 1.2;
+            double pow = lowN + (highN - lowN) / (numIntervals + 1) * filterIndex;
+            double freq = Math.Pow(2, pow);
+            double gain = 0;
+
+            Dictionary<string, double> retval = new Dictionary<string, double>();
+            retval.Add("frequency", freq);
+            retval.Add("gain", gain);
+            retval.Add("Q", Q);
+            return retval;
         }
 
         #endregion

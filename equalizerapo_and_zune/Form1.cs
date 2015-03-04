@@ -18,6 +18,7 @@ namespace equalizerapo_and_zune
         public equalizerapo_api eqAPI;
         private int previousFilterIndex;
         private bool mousePressed = false;
+        private LinkedList<NumericUpDown> NumberInputs;
 
         #endregion
 
@@ -27,6 +28,7 @@ namespace equalizerapo_and_zune
         {
             InitializeComponent();
 
+            NumberInputs = new LinkedList<NumericUpDown>();
             zuneAPI = new ZuneAPI();
             eqAPI = new equalizerapo_api();
             zuneAPI.TrackChanged += new EventHandler(TrackChanged);
@@ -90,42 +92,123 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                // get the list of filters
-                SortedList<double, Filter> filters = eqAPI.GetFilters();
+                // update series and change the graph visually
+                UpdateEqualizerGraph();
 
-                // update the equalizer series
-                chart_filters.Series.Clear();
-                System.Windows.Forms.DataVisualization.Charting.Series series =
-                    chart_filters.Series.Add("frequencies");
-                foreach (System.Collections.Generic.KeyValuePair<double, Filter> pair in filters)
-                {
-                    Filter filter = pair.Value;
-                    series.Points.Add(filter.Gain);
-                }
-
-                // change the equalizer graph visually
-                // make it a line graph instead of bar graph
-                series.ChartType =
-                    System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-                // set the range of the axis
-                double gainMax = equalizerapo_api.GainMax;
-                System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
-                    chart_filters.ChartAreas["ChartArea1"].AxisY;
-                System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
-                    chart_filters.ChartAreas["ChartArea1"].AxisX;
-                yaxis.Interval = gainMax / 3;
-                yaxis.Minimum = -gainMax;
-                yaxis.Maximum = gainMax;
-                xaxis.Minimum = 1;
-                xaxis.Maximum = filters.Count;
-                // make grid lines lighter
-                xaxis.MajorGrid.LineColor = Color.LightGray;
-                yaxis.MajorGrid.LineColor = Color.LightGray;
-                // make graph easier to see
-                series.BorderWidth = 3;
+                // update the filter text inputs
+                UpdateEqualizerTextInputs();
 
                 chart_filters.DataBind();
             }
+        }
+
+        private void UpdateEqualizerGraph()
+        {
+            //
+            // update the series
+            //
+
+            // get the list of filters
+            SortedList<double, Filter> filters = eqAPI.GetFilters();
+
+            // update the equalizer series
+            chart_filters.Series.Clear();
+            System.Windows.Forms.DataVisualization.Charting.Series series =
+                chart_filters.Series.Add("frequencies");
+            foreach (System.Collections.Generic.KeyValuePair<double, Filter> pair in filters)
+            {
+                Filter filter = pair.Value;
+                series.Points.Add(filter.Gain);
+            }
+
+            //
+            // change the equalizer graph visually
+            //
+
+            // make it a line graph instead of bar graph
+            series.ChartType =
+                System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+
+            // set the range of the axis
+            double gainMax = equalizerapo_api.GainMax;
+            System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
+                chart_filters.ChartAreas["ChartArea1"].AxisY;
+            System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
+                chart_filters.ChartAreas["ChartArea1"].AxisX;
+            yaxis.Interval = gainMax / 3;
+            yaxis.Minimum = -gainMax;
+            yaxis.Maximum = gainMax;
+            xaxis.Minimum = 1;
+            xaxis.Maximum = filters.Count;
+
+            // make grid lines lighter
+            xaxis.MajorGrid.LineColor = Color.LightGray;
+            yaxis.MajorGrid.LineColor = Color.LightGray;
+
+            // make graph easier to see
+            series.BorderWidth = 3;
+        }
+
+        private void UpdateEqualizerTextInputs()
+        {
+            SortedList<double, Filter> filters = eqAPI.GetFilters();
+
+            // get the position and size of the graph
+            int x1 = this.chart_filters.Location.X + 50;
+            int y1 = this.chart_filters.Location.Y +
+                this.chart_filters.Height + 5;
+            int w1 = this.chart_filters.Width - 60;
+            int boxHeight = 50;
+            int boxSpacing = w1 / filters.Count;
+
+            // number of filters has changed
+            if (filters.Count != NumberInputs.Count)
+            {
+                // delete the old text inputs
+                foreach (NumericUpDown numeric in NumberInputs)
+                {
+                    this.Controls.Remove(numeric);
+                }
+                NumberInputs.Clear();
+
+                // add the new text inputs
+                for (int i = 0; i < filters.Count; i++)
+                {
+                    NumericUpDown numeric = new NumericUpDown();
+                    numeric.Location = new System.Drawing.Point(
+                        x1 + i * boxSpacing, y1);
+                    numeric.Width = boxSpacing - 5;
+                    numeric.Height = boxHeight;
+                    numeric.Minimum = -Convert.ToInt32(equalizerapo_api.GainMax);
+                    numeric.Maximum = Convert.ToInt32(equalizerapo_api.GainMax);
+                    NumberInputs.AddLast(numeric);
+                    this.Controls.Add(numeric);
+                    numeric.ValueChanged += new EventHandler(number_inputs_ValueChanged);
+                }
+            }
+
+            // change filter values
+            for (int i = 0; i < filters.Count; i++)
+            {
+                Filter filter = filters.ElementAt(i).Value;
+                NumericUpDown numeric = NumberInputs.ElementAt(i);
+                numeric.Value = Convert.ToInt32(filter.Gain);
+            }
+        }
+
+        private void number_inputs_ValueChanged(object sender, EventArgs e)
+        {
+            SortedList<double, Filter> filters = eqAPI.GetFilters();
+            for (int i = 0; i < NumberInputs.Count; i++)
+            {
+                NumericUpDown numeric = NumberInputs.ElementAt(i);
+                Filter filter = filters.ElementAt(i).Value;
+                if (numeric.Value != Convert.ToInt32(filter.Gain))
+                {
+                    eqAPI.GetFilter(i).Gain = Convert.ToDouble(numeric.Value);
+                }
+            }
+            DeferredUpdateAll(this);
         }
 
         private void button_next_Click(object sender, EventArgs e)
@@ -150,14 +233,12 @@ namespace equalizerapo_and_zune
 
         private void chart_filters_MouseUp(object sender, MouseEventArgs e)
         {
-            System.Diagnostics.Debugger.Log(1, "", "released!\n");
             mousePressed = false;
         }
 
         private void chart_filters_Click(object sender, MouseEventArgs e)
         {
             chart_filters_Click(sender, e, -1);
-            System.Diagnostics.Debugger.Log(1, "", "pressed!\n");
             mousePressed = true;
         }
 
@@ -239,6 +320,18 @@ namespace equalizerapo_and_zune
         {
             eqAPI.ZeroOutEqualizer();
             DeferredUpdateAll(sender);
+        }
+
+        private void button_remove_filter_Click(object sender, EventArgs e)
+        {
+            eqAPI.RemoveFilter();
+            DeferredUpdateAll(this);
+        }
+
+        private void button_add_filter_Click(object sender, EventArgs e)
+        {
+            eqAPI.AddFilter();
+            DeferredUpdateAll(this);
         }
 
         #endregion
