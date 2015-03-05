@@ -95,10 +95,13 @@ namespace equalizerapo_and_zune
                 {
                     double freq = Convert.ToDouble(nums[0].Value, provider);
                     double gain = Convert.ToDouble(nums[1].Value, provider);
-                    double Q = Convert.ToDouble(nums[1].Value, provider);
+                    double Q = Convert.ToDouble(nums[2].Value, provider);
                     Filter filter = new Filter(freq, gain, Q);
                     filter.FilterChanged += new EventHandler(FilterChanged);
                     filters.Add(freq, filter);
+                    System.Diagnostics.Debugger.Log(1, "",
+                        String.Format("read filter: freq:{0}, gain:{1}, Q:{2}\n",
+                            filter.Frequency, filter.Gain, filter.Q));
                 }
             }
             CurrentFilters = filters;
@@ -247,12 +250,6 @@ namespace equalizerapo_and_zune
 
         private void FilterChanged(object sender, EventArgs e)
         {
-            String notification = "changed";
-            if (!WriteThrough)
-            {
-                notification += ", but writethrough is off";
-            }
-            System.Diagnostics.Debugger.Log(1, "", notification + "\n");
             SaveFile();
         }
 
@@ -267,7 +264,6 @@ namespace equalizerapo_and_zune
             {
                 return;
             }
-            System.Diagnostics.Debugger.Log(1, "", "saved\n");
 
             LinkedList<string> lines = new LinkedList<string>();
 

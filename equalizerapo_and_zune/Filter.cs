@@ -121,9 +121,9 @@ namespace equalizerapo_and_zune
         /// <param name="Q">The filter Q.</param>
         public Filter(double freq, double gain, double Q)
         {
-            this.Frequency = freq;
-            this.Gain = gain;
-            this.Q = Q;
+            this.frequency = freq;
+            this.gain = gain;
+            this.q = Q;
         }
 
         /// <summary>

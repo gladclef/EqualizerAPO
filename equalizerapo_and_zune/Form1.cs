@@ -21,6 +21,7 @@ namespace equalizerapo_and_zune
         private bool mousePressed = false;
         private LinkedList<NumericUpDown> NumberInputs;
         private Messenger messenger;
+        private bool doHandleNumericValueChanged = true;
 
         #endregion
 
@@ -211,16 +212,23 @@ namespace equalizerapo_and_zune
             }
 
             // change filter values
+            doHandleNumericValueChanged = false;
             for (int i = 0; i < filters.Count; i++)
             {
                 Filter filter = filters.ElementAt(i).Value;
                 NumericUpDown numeric = NumberInputs.ElementAt(i);
                 numeric.Value = Convert.ToInt32(filter.Gain);
             }
+            doHandleNumericValueChanged = true;
         }
 
         private void number_inputs_ValueChanged(object sender, EventArgs e)
         {
+            if (!doHandleNumericValueChanged)
+            {
+                return;
+            }
+
             SortedList<double, Filter> filters = eqAPI.GetFilters();
             for (int i = 0; i < NumberInputs.Count; i++)
             {

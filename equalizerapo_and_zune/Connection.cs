@@ -66,7 +66,7 @@ namespace equalizerapo_and_zune
             }
             string success = CurrentSocketClient.Connect(socket);
             CurrentSocketClient.HandleIncomingMessages(
-                new SocketCallbackDelegate(SocketCallback));
+                new SocketClient.SocketCallbackDelegate(SocketCallback));
             return success;
         }
 
