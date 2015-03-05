@@ -111,6 +111,8 @@ namespace equalizerapo_and_zune
 
         public void RemoveFilter()
         {
+            WriteThrough = false;
+
             // adjust old filters
             for (int i = 0; i < CurrentFilters.Count; i++)
             {
@@ -125,6 +127,7 @@ namespace equalizerapo_and_zune
             CurrentFilters.RemoveAt(CurrentFilters.Count - 1);
 
             // save the new set of filters
+            WriteThrough = true;
             SaveFile();
         }
 
@@ -132,6 +135,7 @@ namespace equalizerapo_and_zune
         {
             Filter filter = null;
             Dictionary<string, double> filterParameters = null;
+            WriteThrough = false;
 
             // adjust old filters
             for (int i = 0; i < CurrentFilters.Count; i++)
@@ -148,9 +152,11 @@ namespace equalizerapo_and_zune
                 filterParameters["frequency"],
                 filterParameters["gain"],
                 filterParameters["Q"]);
+            filter.FilterChanged += new EventHandler(FilterChanged);
             CurrentFilters.Add(filter.Frequency, filter);
 
             // save the new set of filters
+            WriteThrough = true;
             SaveFile();
         }
 
