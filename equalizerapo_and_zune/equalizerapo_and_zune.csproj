@@ -57,6 +57,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Connection.cs" />
     <Compile Include="equalizerapo_api.cs" />
     <Compile Include="File.cs" />
     <Compile Include="Filter.cs" />
@@ -68,6 +69,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SocketClient.cs" />
     <Compile Include="Track.cs" />
     <Compile Include="ZuneAPI.cs" />
     <EmbeddedResource Include="Form1.resx">
@@ -93,7 +95,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="WMPLib">

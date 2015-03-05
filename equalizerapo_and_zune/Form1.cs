@@ -16,6 +16,7 @@ namespace equalizerapo_and_zune
 
         public ZuneAPI zuneAPI;
         public equalizerapo_api eqAPI;
+        public Connection conAPI;
         private int previousFilterIndex;
         private bool mousePressed = false;
         private LinkedList<NumericUpDown> NumberInputs;
@@ -28,11 +29,22 @@ namespace equalizerapo_and_zune
         {
             InitializeComponent();
 
+            // initialize zune and equalizer api instances
             NumberInputs = new LinkedList<NumericUpDown>();
             zuneAPI = new ZuneAPI();
             eqAPI = new equalizerapo_api();
             zuneAPI.TrackChanged += new EventHandler(TrackChanged);
+            eqAPI.EqualizerChanged += new EventHandler(EqualizerChanged);
             zuneAPI.Init();
+
+            // create a listening connection
+            conAPI = Connection.GetInstance();
+            conAPI.ConnectedEvent += new EventHandler(DeferredConnectedSocked);
+            conAPI.DisconnectedEvent += new EventHandler(DeferredDisconnectedSocked);
+            conAPI.Listen();
+
+            // tell the user that we're listening, and on what port
+            UpdateListenerDescription(false);
         }
 
         public void UpdateTrackTitle(String newTitle)
@@ -61,6 +73,11 @@ namespace equalizerapo_and_zune
         private void TrackChanged(object sender, EventArgs e)
         {
             DeferredUpdateAll(sender);
+        }
+
+        private void EqualizerChanged(object sender, EventArgs e)
+        {
+            DeferredUpdateAll(null);
         }
 
         private void DeferredUpdateAll(object sender)
@@ -208,7 +225,6 @@ namespace equalizerapo_and_zune
                     eqAPI.GetFilter(i).Gain = Convert.ToDouble(numeric.Value);
                 }
             }
-            DeferredUpdateAll(this);
         }
 
         private void button_next_Click(object sender, EventArgs e)
@@ -299,7 +315,6 @@ namespace equalizerapo_and_zune
             if (filter != null)
             {
                 filter.Gain = gain;
-                DeferredUpdateAll(this);
             }
         }
 
@@ -319,19 +334,62 @@ namespace equalizerapo_and_zune
         private void link_zero_equalizer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             eqAPI.ZeroOutEqualizer();
-            DeferredUpdateAll(sender);
         }
 
         private void button_remove_filter_Click(object sender, EventArgs e)
         {
             eqAPI.RemoveFilter();
-            DeferredUpdateAll(this);
         }
 
         private void button_add_filter_Click(object sender, EventArgs e)
         {
             eqAPI.AddFilter();
-            DeferredUpdateAll(this);
+        }
+
+        private void UpdateListenerDescription(bool connected)
+        {
+            if (label_artistname_trackname.InvokeRequired)
+            {
+                // thread-safe callback
+                SetBoolCallback d = new SetBoolCallback(UpdateListenerDescription);
+                this.Invoke(d, new object[] { connected });
+            }
+            else
+            {
+                if (!connected)
+                {
+                    textblock_listening_port.Text = "Listening on: " + Connection.ListeningAddress;
+                }
+                else
+                {
+                    textblock_listening_port.Text = "Connected!";
+                }
+            }
+        }
+
+        private void ConnectedSocket(object sender)
+        {
+            UpdateListenerDescription(true);
+            conAPI.StartListening();
+        }
+
+        private void DeferredConnectedSocked(object sender, EventArgs e)
+        {
+            Microsoft.Iris.Application.DeferredInvoke(
+                new Microsoft.Iris.DeferredInvokeHandler(ConnectedSocket),
+                Microsoft.Iris.DeferredInvokePriority.Normal);
+        }
+
+        private void DisconnectedSocket(object sender)
+        {
+            UpdateListenerDescription(false);
+        }
+
+        private void DeferredDisconnectedSocked(object sender, EventArgs e)
+        {
+            Microsoft.Iris.Application.DeferredInvoke(
+                new Microsoft.Iris.DeferredInvokeHandler(DisconnectedSocket),
+                Microsoft.Iris.DeferredInvokePriority.Normal);
         }
 
         #endregion
@@ -339,6 +397,7 @@ namespace equalizerapo_and_zune
         #region delegate classes
 
         delegate void SetTextCallback(String text);
+        delegate void SetBoolCallback(bool isset);
         delegate void ButtonAdjustCallback();
         delegate void DeferredInvokeDelegate(object sender);
         delegate void EventInvokeDelegate(object sender, EventArgs e);

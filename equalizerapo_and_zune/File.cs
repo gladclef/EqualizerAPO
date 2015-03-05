@@ -23,6 +23,16 @@ namespace equalizerapo_and_zune
 
         public Track TrackRef { get; private set; }
         public String FullPath { get; private set; }
+
+        /// <summary>
+        /// Determines if the file gets saved, ever.
+        /// Set to false when doing bulk edits on a file.
+        /// </summary>
+        public bool WriteThrough { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
         private SortedList<double, Filter> CurrentFilters { get; set; }
 
         #endregion
@@ -37,13 +47,12 @@ namespace equalizerapo_and_zune
 
         public File()
         {
-            TrackRef = null;
-            FullPath = "";
-            CurrentFilters = null;
+            Init();
         }
 
         public File(Track track)
         {
+            Init();
             TrackRef = track;
             FullPath = GetEqualizerAPOPath() + "config\\" + GetEqualizerFilename();
             ReadFilters();
@@ -88,7 +97,7 @@ namespace equalizerapo_and_zune
                     double gain = Convert.ToDouble(nums[1].Value, provider);
                     double Q = Convert.ToDouble(nums[1].Value, provider);
                     Filter filter = new Filter(freq, gain, Q);
-                    filter.FilterChanged += FilterChanged;
+                    filter.FilterChanged += new EventHandler(FilterChanged);
                     filters.Add(freq, filter);
                 }
             }
@@ -99,20 +108,18 @@ namespace equalizerapo_and_zune
 
         public void RemoveFilter()
         {
-            SortedList<double, Filter> filters = CurrentFilters;
-
             // adjust old filters
-            for (int i = 0; i < filters.Count; i++)
+            for (int i = 0; i < CurrentFilters.Count; i++)
             {
-                Filter filter = filters.ElementAt(i).Value;
+                Filter filter = CurrentFilters.ElementAt(i).Value;
                 Dictionary<string, double> filterParameters =
-                    Filter.GenerateFilterParameters(filters.Count - 1, i);
+                    Filter.GenerateFilterParameters(CurrentFilters.Count - 1, i);
                 filter.Frequency = filterParameters["frequency"];
                 filter.Q = filterParameters["Q"];
             }
 
             // remove last filter
-            filters.RemoveAt(filters.Count - 1);
+            CurrentFilters.RemoveAt(CurrentFilters.Count - 1);
 
             // save the new set of filters
             SaveFile();
@@ -122,28 +129,36 @@ namespace equalizerapo_and_zune
         {
             Filter filter = null;
             Dictionary<string, double> filterParameters = null;
-            SortedList<double, Filter> filters = CurrentFilters;
 
             // adjust old filters
-            for (int i = 0; i < filters.Count; i++)
+            for (int i = 0; i < CurrentFilters.Count; i++)
             {
-                filter = filters.ElementAt(i).Value;
-                filterParameters = Filter.GenerateFilterParameters(filters.Count + 1, i);
+                filter = CurrentFilters.ElementAt(i).Value;
+                filterParameters = Filter.GenerateFilterParameters(CurrentFilters.Count + 1, i);
                 filter.Frequency = filterParameters["frequency"];
                 filter.Q = filterParameters["Q"];
             }
 
             // add new filter
-            filterParameters = Filter.GenerateFilterParameters(filters.Count + 1, filters.Count);
+            filterParameters = Filter.GenerateFilterParameters(CurrentFilters.Count + 1, CurrentFilters.Count);
             filter = new Filter(
                 filterParameters["frequency"],
                 filterParameters["gain"],
                 filterParameters["Q"]);
-            filters.Add(filter.Frequency, filter);
+            CurrentFilters.Add(filter.Frequency, filter);
 
             // save the new set of filters
             SaveFile();
         }
+
+        public void ForceSave()
+        {
+            SaveFile(true);
+        }
+
+        #endregion
+
+        #region public static methods
 
         public static String GetEqualizerAPOPath() {
             if (FullPathFound != null)
@@ -199,6 +214,13 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        private void Init() {
+            TrackRef = null;
+            FullPath = "";
+            CurrentFilters = null;
+            WriteThrough = true;
+        }
+
         /// <summary>
         /// Generates a set a filters spread out evenly across the hearing spectrum,
         /// with a gain of 0 and a Q to match the spacing between each filter.
@@ -225,11 +247,28 @@ namespace equalizerapo_and_zune
 
         private void FilterChanged(object sender, EventArgs e)
         {
+            String notification = "changed";
+            if (!WriteThrough)
+            {
+                notification += ", but writethrough is off";
+            }
+            System.Diagnostics.Debugger.Log(1, "", notification + "\n");
             SaveFile();
         }
 
         private void SaveFile()
         {
+            SaveFile(false);
+        }
+
+        private void SaveFile(bool force)
+        {
+            if (!WriteThrough && !force)
+            {
+                return;
+            }
+            System.Diagnostics.Debugger.Log(1, "", "saved\n");
+
             LinkedList<string> lines = new LinkedList<string>();
 
             // write out each filter

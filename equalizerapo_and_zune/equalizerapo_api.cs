@@ -23,6 +23,12 @@ namespace equalizerapo_and_zune
 
         #endregion
 
+        #region event handlers
+
+        public EventHandler EqualizerChanged;
+
+        #endregion
+
         #region public methods
 
         public equalizerapo_api()
@@ -65,6 +71,10 @@ namespace equalizerapo_and_zune
                 CurrentFile = new File(track);
                 CurrentFile.FileSaved += new EventHandler(FileUpdated);
                 PointConfig();
+                if (EqualizerChanged != null)
+                {
+                    EqualizerChanged(this, EventArgs.Empty);
+                }
             }
         }
 
@@ -85,14 +95,28 @@ namespace equalizerapo_and_zune
             {
                 equalizerapo_api.UnsetEqualizer();
             }
+            if (EqualizerChanged != null)
+            {
+                EqualizerChanged(this, EventArgs.Empty);
+            }
         }
 
         public void ZeroOutEqualizer()
         {
-            foreach (KeyValuePair<double, Filter> pair in CurrentFile.ReadFilters())
+            // turn of write-through until the last filter has been updated
+            CurrentFile.WriteThrough = false;
+
+            // set gain to zero for all filters
+            SortedList<double, Filter> filters = CurrentFile.ReadFilters();
+            for (int i = 0; i < filters.Count; i++) 
             {
+                KeyValuePair<double,Filter> pair = filters.ElementAt(i);
                 pair.Value.Gain = 0;
             }
+
+            // enable write-through and save
+            CurrentFile.WriteThrough = true;
+            CurrentFile.ForceSave();
         }
 
         public void RemoveFilter()
@@ -147,6 +171,10 @@ namespace equalizerapo_and_zune
         private void FileUpdated(object sender, EventArgs e)
         {
             PointConfig();
+            if (EqualizerChanged != null)
+            {
+                EqualizerChanged(this, EventArgs.Empty);
+            }
         }
 
         #endregion

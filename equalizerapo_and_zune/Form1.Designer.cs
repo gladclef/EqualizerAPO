@@ -40,6 +40,7 @@
             this.checkbox_apply_equalizer = new System.Windows.Forms.CheckBox();
             this.button_remove_filter = new System.Windows.Forms.Button();
             this.button_add_filter = new System.Windows.Forms.Button();
+            this.textblock_listening_port = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).BeginInit();
             this.SuspendLayout();
             // 
@@ -153,11 +154,21 @@
             this.button_add_filter.UseVisualStyleBackColor = true;
             this.button_add_filter.Click += new System.EventHandler(this.button_add_filter_Click);
             // 
+            // textblock_listening_port
+            // 
+            this.textblock_listening_port.AutoSize = true;
+            this.textblock_listening_port.Location = new System.Drawing.Point(12, 295);
+            this.textblock_listening_port.Name = "textblock_listening_port";
+            this.textblock_listening_port.Size = new System.Drawing.Size(93, 17);
+            this.textblock_listening_port.TabIndex = 10;
+            this.textblock_listening_port.Text = "Listening on: ";
+            // 
             // form_main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(559, 297);
+            this.ClientSize = new System.Drawing.Size(559, 321);
+            this.Controls.Add(this.textblock_listening_port);
             this.Controls.Add(this.button_add_filter);
             this.Controls.Add(this.button_remove_filter);
             this.Controls.Add(this.checkbox_apply_equalizer);
@@ -186,6 +197,7 @@
         private System.Windows.Forms.CheckBox checkbox_apply_equalizer;
         private System.Windows.Forms.Button button_remove_filter;
         private System.Windows.Forms.Button button_add_filter;
+        private System.Windows.Forms.Label textblock_listening_port;
     }
 }
 
