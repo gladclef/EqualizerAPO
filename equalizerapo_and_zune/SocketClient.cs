@@ -26,6 +26,7 @@ namespace equalizerapo_and_zune
         public const string SUCCESS = "Success";
         public const string KEEP_ALIVE = "Keep alive check";
         public const string KEEP_ALIVE_ACK = "Keep alive acknowledged";
+        public const string NO_MESSAGE = "No message available";
 
         #endregion
 
@@ -46,6 +47,17 @@ namespace equalizerapo_and_zune
         #endregion
 
         #region public methods
+
+        public string Connect(Socket socket)
+        {
+            if (socket != _socket)
+            {
+                Close();
+            }
+            System.Diagnostics.Debugger.Log(1, "", "connecting to socket\n");
+            _socket = socket;
+            return SUCCESS;
+        }
 
         /// <summary>
         /// Attempt a TCP socket connection to the given host over the given port
@@ -88,9 +100,16 @@ namespace equalizerapo_and_zune
             // If no response comes back within this time then proceed
             _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
 
+            System.Diagnostics.Debugger.Log(1, "", "established new connection");
+
             return result;
         }
 
+        /// <summary>
+        /// Creates a listener for incoming connections
+        /// </summary>
+        /// <param name="ipAddress"></param>
+        /// <param name="portNumber"></param>
         public void Listen(IPAddress ipAddress, int portNumber)
         {
             // Create DnsEndPoint. The hostName and port are passed in to this method.
@@ -112,10 +131,10 @@ namespace equalizerapo_and_zune
                 System.Diagnostics.Debugger.Log(1, "", "Waiting for a connection...\n");
 
                 // Accept the connection and receive the first 10 bytes of data. 
-                _socket.Accept();
+                Socket newSocket = _socket.Accept();
                 if (ConnectedEvent != null)
                 {
-                    ConnectedEvent(this, EventArgs.Empty);
+                    ConnectedEvent(this, new ConnectedEventArgs(newSocket));
                 }
 
                 // Wait until a connection is made and processed before continuing.
@@ -130,7 +149,7 @@ namespace equalizerapo_and_zune
         /// <returns>The result of the Send request</returns>
         public string Send(string data)
         {
-            string response = "Operation Timeout";
+            string response = OPERATION_TIMEOUT;
 
             // We are re-using the _socket object initialized in the Connect method
             if (_socket != null)
@@ -169,10 +188,32 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                response = "Socket is not initialized";
+                response = UNINITIALIZED;
             }
 
             return response;
+        }
+
+        public void HandleIncomingMessages(SocketCallbackDelegate d)
+        {
+            // We are receiving over an established socket connection
+            if (_socket != null)
+            {
+                // Create SocketAsyncEventArgs context object
+                SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
+                socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
+
+                // Setup the buffer to receive the data
+                socketEventArg.SetBuffer(new Byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
+
+                // Inline event handler for the Completed event.
+                // Note: This even handler was implemented inline in order to make 
+                // this method self-contained.
+                socketEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(d);
+
+                // Make an asynchronous Receive request over the socket
+                _socket.ReceiveAsync(socketEventArg);
+            }
         }
 
         /// <summary>
@@ -180,9 +221,9 @@ namespace equalizerapo_and_zune
         /// </summary>
         /// <returns>The data received from the server,
         ///     ""</returns>
-        public string Receive()
+        public string Receive(bool waitForTimeout)
         {
-            string response = SocketClient.OPERATION_TIMEOUT;
+            string response = waitForTimeout ? OPERATION_TIMEOUT : NO_MESSAGE;
 
             // We are receiving over an established socket connection
             if (_socket != null)
@@ -221,7 +262,14 @@ namespace equalizerapo_and_zune
 
                 // Block the UI thread for a maximum of TIMEOUT_MILLISECONDS milliseconds.
                 // If no response comes back within this time then proceed
-                _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
+                if (waitForTimeout)
+                {
+                    _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
+                }
+                else
+                {
+                    _clientDone.WaitOne(200);
+                }
             }
             else
             {
@@ -238,7 +286,9 @@ namespace equalizerapo_and_zune
         {
             if (_socket != null)
             {
+                System.Diagnostics.Debugger.Log(1, "", "closing socket\n");
                 _socket.Close();
+                _socket = null;
             }
         }
 
@@ -267,9 +317,20 @@ namespace equalizerapo_and_zune
 
         #endregion
 
-        private void KeepAlive(Socket socket)
+        public class ConnectedEventArgs : EventArgs
         {
-            Send("keep alive check");
+            public Socket newSocket;
+
+            public ConnectedEventArgs(Socket newSocket)
+            {
+                this.newSocket = newSocket;
+            }
         }
+
+        #region delegates
+
+        public delegate void SocketCallbackDelegate(object s, System.Net.Sockets.SocketAsyncEventArgs e);
+
+        #endregion
     }
 }

@@ -20,6 +20,7 @@ namespace equalizerapo_and_zune
         private int previousFilterIndex;
         private bool mousePressed = false;
         private LinkedList<NumericUpDown> NumberInputs;
+        private Messenger messenger;
 
         #endregion
 
@@ -37,10 +38,14 @@ namespace equalizerapo_and_zune
             eqAPI.EqualizerChanged += new EventHandler(EqualizerChanged);
             zuneAPI.Init();
 
+            // start a messenger to communicate with app
+            messenger = new Messenger(this);
+
             // create a listening connection
             conAPI = Connection.GetInstance();
             conAPI.ConnectedEvent += new EventHandler(DeferredConnectedSocked);
             conAPI.DisconnectedEvent += new EventHandler(DeferredDisconnectedSocked);
+            conAPI.MessageRecievedEvent += new EventHandler(messenger.MessageReceived);
             conAPI.Listen();
 
             // tell the user that we're listening, and on what port
@@ -375,6 +380,9 @@ namespace equalizerapo_and_zune
 
         private void DeferredConnectedSocked(object sender, EventArgs e)
         {
+            SocketClient.ConnectedEventArgs cea =
+                (SocketClient.ConnectedEventArgs)e;
+            conAPI.Connect(cea.newSocket);
             Microsoft.Iris.Application.DeferredInvoke(
                 new Microsoft.Iris.DeferredInvokeHandler(ConnectedSocket),
                 Microsoft.Iris.DeferredInvokePriority.Normal);

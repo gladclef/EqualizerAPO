@@ -26,14 +26,12 @@ namespace equalizerapo_and_zune
 
         private static Connection Instance;
         private static SocketClient CurrentSocketClient;
-        private bool keepAliveReceived;
-        private Thread keepAliveThread;
+        private Queue<string> messageQueue;
 
         #endregion
 
         #region properties
 
-        public bool Connected { get; private set; }
         public static IPAddress ListeningAddress { get; private set; }
 
         #endregion
@@ -60,6 +58,18 @@ namespace equalizerapo_and_zune
             Connect(hostname, port);
         }
 
+        public string Connect(Socket socket)
+        {
+            if (CurrentSocketClient == null)
+            {
+                CurrentSocketClient = new SocketClient();
+            }
+            string success = CurrentSocketClient.Connect(socket);
+            CurrentSocketClient.HandleIncomingMessages(
+                new SocketCallbackDelegate(SocketCallback));
+            return success;
+        }
+
         public string Connect(String hostname, int port)
         {
             if (CurrentSocketClient != null)
@@ -71,7 +81,8 @@ namespace equalizerapo_and_zune
             string success = CurrentSocketClient.Connect(hostname, port);
             if (success == SocketClient.SUCCESS)
             {
-                Connected = true;
+                CurrentSocketClient.HandleIncomingMessages(
+                    new SocketClient.SocketCallbackDelegate(SocketCallback));
             }
             else
             {
@@ -88,16 +99,25 @@ namespace equalizerapo_and_zune
 
         public string Send(string data)
         {
-            if (!Connected)
+            if (CurrentSocketClient == null)
             {
                 throw new InvalidOperationException("no connection established to SocketClient");
             }
             return CurrentSocketClient.Send(data);
         }
 
-        public String Receive()
+        public string Receive()
         {
-            return CurrentSocketClient.Receive();
+            return Receive(true);
+        }
+
+        public string Receive(bool waitForTimeout)
+        {
+            if (CurrentSocketClient == null)
+            {
+                throw new InvalidOperationException("no connection established to SocketClient");
+            }
+            return CurrentSocketClient.Receive(waitForTimeout);
         }
 
         public void StartListening()
@@ -129,11 +149,10 @@ namespace equalizerapo_and_zune
 
         private void Init()
         {
-            Connected = false;
             ListeningAddress = Array.FindLast(
                 Dns.GetHostEntry(string.Empty).AddressList,
                 a => a.AddressFamily == AddressFamily.InterNetwork);
-            System.Diagnostics.Debugger.Log(1, "", "ip address: " + ListeningAddress + "\n");
+            messageQueue = new Queue<string>();
         }
 
         private void Listener(object sender)
@@ -145,68 +164,38 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender, EventArgs e)
         {
-            // create a keep-alive checker thread
-            if (keepAliveThread != null)
-            {
-                keepAliveThread.Abort();
-            }
-            keepAliveThread = new Thread(new ParameterizedThreadStart(KeepAliveChecker));
+            SocketClient.ConnectedEventArgs cea =
+                (SocketClient.ConnectedEventArgs)e;
+
+            // connect to the incoming connection
+            CurrentSocketClient.Connect(cea.newSocket);
 
             if (ConnectedEvent != null)
             {
-                ConnectedEvent(sender, e);
-            }
-        }
-
-        private void KeepAliveChecker(object sender)
-        {
-            Thread.Sleep(5000);
-
-            if (CurrentSocketClient == null)
-            {
-                Connect(Connection.ListeningAddress.ToString(), Connection.APP_PORT);
-            }
-
-            System.Diagnostics.Debugger.Log(1, "", "sending keep-alive check\n");
-            keepAliveReceived = false;
-            CurrentSocketClient.Send("keep alive check");
-            System.Diagnostics.Debugger.Log(1, "", "receiving keep-alive check\n");
-            string response = CurrentSocketClient.Receive();
-            System.Diagnostics.Debugger.Log(1, "", "response: " + response + "\n");
-            if (response == SocketClient.KEEP_ALIVE_ACK ||
-                keepAliveReceived)
-            {
-
-                // continue to keep alive!
-                KeepAliveChecker(sender);
-            }
-            else
-            {
-
-                // no response! must have disconnected
-                if (DisconnectedEvent != null)
-                {
-                    DisconnectedEvent(this, EventArgs.Empty);
-                }
-                if (keepAliveThread != null)
-                {
-                    keepAliveThread.Abort();
-                    keepAliveThread = null;
-                }
+                ConnectedEvent(sender, cea);
             }
         }
 
         private void ContinueListening(object sender)
         {
             Thread.Sleep(200);
-
-            string message = CurrentSocketClient.Receive();
-            if (message == SocketClient.KEEP_ALIVE_ACK)
+            if (messageQueue.Count == 0)
             {
-                keepAliveReceived = true;
+                return;
+            }
+            string message = messageQueue.Dequeue();
+
+            if (message == SocketClient.KEEP_ALIVE)
+            {
+                System.Diagnostics.Debugger.Log(1, "", "..." + Send(SocketClient.KEEP_ALIVE_ACK) + "\n");
+                if (MessageRecievedEvent != null)
+                {
+                    MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
+                }
             }
             else if (message == SocketClient.OPERATION_TIMEOUT ||
-                message == SocketClient.UNINITIALIZED)
+                message == SocketClient.UNINITIALIZED ||
+                message == SocketClient.NO_MESSAGE)
             {
                 // do nothing
             }
@@ -214,8 +203,40 @@ namespace equalizerapo_and_zune
             {
                 if (MessageRecievedEvent != null)
                 {
-                    MessageRecievedEvent(this, EventArgs.Empty);
+                    MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
                 }
+            }
+
+            ContinueListening(sender);
+        }
+
+        private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs e)
+        {
+            string message;
+            if (e.SocketError == System.Net.Sockets.SocketError.Success)
+            {
+                // Retrieve the data from the buffer
+                message = Encoding.UTF8.GetString(e.Buffer, e.Offset, e.BytesTransferred);
+                message = message.Trim('\0');
+            }
+            else
+            {
+                message = e.SocketError.ToString();
+            }
+            messageQueue.Enqueue(message);
+        }
+
+        #endregion
+
+        #region classes
+
+        public class MessageReceivedEventArgs : EventArgs
+        {
+            public string message;
+
+            public MessageReceivedEventArgs(string message)
+            {
+                this.message = message;
             }
         }
 
