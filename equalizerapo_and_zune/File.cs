@@ -115,7 +115,7 @@ namespace equalizerapo_and_zune
                 if (line.Substring(0, "Preamp: ".Length) == "Preamp: ")
                 {
                     Match num = getInt.Match(line);
-                    preAmp = Convert.ToInt32(num);
+                    preAmp = Convert.ToInt32(num.Value);
                     continue;
                 }
 
