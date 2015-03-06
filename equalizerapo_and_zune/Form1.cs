@@ -104,6 +104,7 @@ namespace equalizerapo_and_zune
             eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
+            UpdatePreamp();
         }
 
         private void UpdateEqualizer(object sender)
@@ -359,6 +360,44 @@ namespace equalizerapo_and_zune
         {
             eqAPI.AddFilter();
         }
+
+        private void UpdatePreamp()
+        {
+            trackbar_volume.Value = eqAPI.GetPreAmp();
+            numeric_volume.Value = eqAPI.GetPreAmp();
+        }
+
+        private void trackbar_volume_ValueChanged(object sender, EventArgs e)
+        {
+            if (trackbar_volume.InvokeRequired)
+            {
+                // thread-safe callback
+                EventInvokeDelegate d = new EventInvokeDelegate(trackbar_volume_ValueChanged);
+                this.Invoke(d, new object[] { sender, e });
+            }
+            else
+            {
+                eqAPI.ChangePreamp(trackbar_volume.Value);
+            }
+        }
+
+        private void numeric_volume_ValueChanged(object sender, EventArgs e)
+        {
+            if (trackbar_volume.InvokeRequired)
+            {
+                // thread-safe callback
+                EventInvokeDelegate d = new EventInvokeDelegate(trackbar_volume_ValueChanged);
+                this.Invoke(d, new object[] { sender, e });
+            }
+            else
+            {
+                eqAPI.ChangePreamp(trackbar_volume.Value);
+            }
+        }
+
+        #endregion
+
+        #region connection methods
 
         private void UpdateListenerDescription(bool connected)
         {

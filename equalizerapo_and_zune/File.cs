@@ -16,6 +16,7 @@ namespace equalizerapo_and_zune
         #region fields
 
         private static String FullPathFound = null;
+        private int preAmp;
 
         #endregion
 
@@ -23,6 +24,25 @@ namespace equalizerapo_and_zune
 
         public Track TrackRef { get; private set; }
         public String FullPath { get; private set; }
+        public int PreAmp
+        {
+            get { return preAmp; }
+            set
+            {
+                int newVal;
+                int gainMax = Convert.ToInt32(equalizerapo_api.GainMax);
+                newVal = Math.Max(
+                    Math.Min(
+                        value,
+                        gainMax),
+                    -gainMax);
+                if (preAmp == value)
+                {
+                    return;
+                }
+                SaveFile();
+            }
+        }
 
         /// <summary>
         /// Determines if the file gets saved, ever.
@@ -84,13 +104,23 @@ namespace equalizerapo_and_zune
             // parse the file to get the filters
             // example line to read:
             //Filter  1: ON  PK       Fc    50,0 Hz  Gain -10,0 dB  Q  2,50
-            Regex getNums = new Regex("-?[0-9]+,[0-9]+", RegexOptions.Compiled);
+            Regex getInt = new Regex("-?[0-9]+", RegexOptions.Compiled);
+            Regex getDecimal = new Regex("-?[0-9]+,[0-9]+", RegexOptions.Compiled);
             System.Globalization.NumberFormatInfo provider = new System.Globalization.NumberFormatInfo();
             provider.NumberDecimalSeparator = ",";
             provider.NumberGroupSeparator = "";
             foreach (string line in System.IO.File.ReadLines(FullPath)) {
-                MatchCollection nums = getNums.Matches(line);
-                // only match lines that have exactly three decimal-style numbers on them
+                // preamp: match to beggining of string
+                //Preamp: -6 dB
+                if (line.Substring(0, "Preamp: ".Length) == "Preamp: ")
+                {
+                    Match num = getInt.Match(line);
+                    preAmp = Convert.ToInt32(num);
+                    continue;
+                }
+
+                // filters: only match lines that have exactly three decimal-style numbers on them
+                MatchCollection nums = getDecimal.Matches(line);
                 if (nums.Count == 3)
                 {
                     double freq = Convert.ToDouble(nums[0].Value, provider);
@@ -228,6 +258,7 @@ namespace equalizerapo_and_zune
             FullPath = "";
             CurrentFilters = null;
             WriteThrough = true;
+            preAmp = 0;
         }
 
         /// <summary>
@@ -272,6 +303,11 @@ namespace equalizerapo_and_zune
             }
 
             LinkedList<string> lines = new LinkedList<string>();
+
+            // write the preamp value
+            // example:
+            //Preamp: -6 dB
+            lines.AddLast(String.Format("Preamp: {0} dB", preAmp));
 
             // write out each filter
             // example filter:

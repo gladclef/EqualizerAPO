@@ -129,6 +129,16 @@ namespace equalizerapo_and_zune
             CurrentFile.AddFilter();
         }
 
+        public void ChangePreamp(int preAmp)
+        {
+            CurrentFile.PreAmp = preAmp;
+        }
+
+        public int GetPreAmp()
+        {
+            return CurrentFile.PreAmp;
+        }
+
         #endregion
 
         #region private methods

@@ -41,7 +41,11 @@
             this.button_remove_filter = new System.Windows.Forms.Button();
             this.button_add_filter = new System.Windows.Forms.Button();
             this.textblock_listening_port = new System.Windows.Forms.Label();
+            this.trackbar_volume = new System.Windows.Forms.TrackBar();
+            this.numeric_volume = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trackbar_volume)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numeric_volume)).BeginInit();
             this.SuspendLayout();
             // 
             // label_current_track
@@ -66,7 +70,7 @@
             // link_zero_equalizer
             // 
             this.link_zero_equalizer.AutoSize = true;
-            this.link_zero_equalizer.Location = new System.Drawing.Point(9, 265);
+            this.link_zero_equalizer.Location = new System.Drawing.Point(9, 297);
             this.link_zero_equalizer.Name = "link_zero_equalizer";
             this.link_zero_equalizer.Size = new System.Drawing.Size(98, 17);
             this.link_zero_equalizer.TabIndex = 2;
@@ -76,7 +80,7 @@
             // 
             // button_next
             // 
-            this.button_next.Location = new System.Drawing.Point(472, 262);
+            this.button_next.Location = new System.Drawing.Point(472, 294);
             this.button_next.Name = "button_next";
             this.button_next.Size = new System.Drawing.Size(75, 23);
             this.button_next.TabIndex = 4;
@@ -86,7 +90,7 @@
             // 
             // button_previous
             // 
-            this.button_previous.Location = new System.Drawing.Point(391, 262);
+            this.button_previous.Location = new System.Drawing.Point(391, 294);
             this.button_previous.Name = "button_previous";
             this.button_previous.Size = new System.Drawing.Size(75, 23);
             this.button_previous.TabIndex = 5;
@@ -106,7 +110,7 @@
             legend1.ForeColor = System.Drawing.Color.Silver;
             legend1.Name = "Legend1";
             this.chart_filters.Legends.Add(legend1);
-            this.chart_filters.Location = new System.Drawing.Point(12, 25);
+            this.chart_filters.Location = new System.Drawing.Point(12, 57);
             this.chart_filters.Name = "chart_filters";
             series1.ChartArea = "ChartArea1";
             series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
@@ -126,7 +130,7 @@
             this.checkbox_apply_equalizer.AutoSize = true;
             this.checkbox_apply_equalizer.Checked = true;
             this.checkbox_apply_equalizer.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(188, 264);
+            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(188, 296);
             this.checkbox_apply_equalizer.Name = "checkbox_apply_equalizer";
             this.checkbox_apply_equalizer.Size = new System.Drawing.Size(128, 21);
             this.checkbox_apply_equalizer.TabIndex = 7;
@@ -136,7 +140,7 @@
             // 
             // button_remove_filter
             // 
-            this.button_remove_filter.Location = new System.Drawing.Point(472, 0);
+            this.button_remove_filter.Location = new System.Drawing.Point(472, 25);
             this.button_remove_filter.Name = "button_remove_filter";
             this.button_remove_filter.Size = new System.Drawing.Size(75, 23);
             this.button_remove_filter.TabIndex = 8;
@@ -146,7 +150,7 @@
             // 
             // button_add_filter
             // 
-            this.button_add_filter.Location = new System.Drawing.Point(391, 0);
+            this.button_add_filter.Location = new System.Drawing.Point(391, 25);
             this.button_add_filter.Name = "button_add_filter";
             this.button_add_filter.Size = new System.Drawing.Size(75, 23);
             this.button_add_filter.TabIndex = 9;
@@ -157,17 +161,48 @@
             // textblock_listening_port
             // 
             this.textblock_listening_port.AutoSize = true;
-            this.textblock_listening_port.Location = new System.Drawing.Point(12, 295);
+            this.textblock_listening_port.Location = new System.Drawing.Point(352, 3);
             this.textblock_listening_port.Name = "textblock_listening_port";
             this.textblock_listening_port.Size = new System.Drawing.Size(93, 17);
             this.textblock_listening_port.TabIndex = 10;
             this.textblock_listening_port.Text = "Listening on: ";
             // 
+            // trackbar_volume
+            // 
+            this.trackbar_volume.Location = new System.Drawing.Point(65, 23);
+            this.trackbar_volume.Maximum = System.Convert.ToInt32(equalizerapo_api.GainMax);
+            this.trackbar_volume.Minimum = -System.Convert.ToInt32(equalizerapo_api.GainMax);
+            this.trackbar_volume.Name = "trackbar_volume";
+            this.trackbar_volume.Size = new System.Drawing.Size(307, 56);
+            this.trackbar_volume.SmallChange = 5;
+            this.trackbar_volume.TabIndex = 11;
+            this.trackbar_volume.TickFrequency = 5;
+            this.trackbar_volume.ValueChanged += new System.EventHandler(this.trackbar_volume_ValueChanged);
+            // 
+            // numeric_volume
+            // 
+            this.numeric_volume.Location = new System.Drawing.Point(12, 25);
+            this.numeric_volume.Maximum = new decimal(new int[] {
+            System.Convert.ToInt32(equalizerapo_api.GainMax),
+            0,
+            0,
+            0});
+            this.numeric_volume.Minimum = new decimal(new int[] {
+            System.Convert.ToInt32(equalizerapo_api.GainMax),
+            0,
+            0,
+            -2147483648});
+            this.numeric_volume.Name = "numeric_volume";
+            this.numeric_volume.Size = new System.Drawing.Size(59, 22);
+            this.numeric_volume.TabIndex = 12;
+            this.numeric_volume.ValueChanged += new System.EventHandler(this.numeric_volume_ValueChanged);
+            // 
             // form_main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(559, 321);
+            this.ClientSize = new System.Drawing.Size(559, 329);
+            this.Controls.Add(this.numeric_volume);
             this.Controls.Add(this.textblock_listening_port);
             this.Controls.Add(this.button_add_filter);
             this.Controls.Add(this.button_remove_filter);
@@ -178,9 +213,12 @@
             this.Controls.Add(this.link_zero_equalizer);
             this.Controls.Add(this.label_artistname_trackname);
             this.Controls.Add(this.label_current_track);
+            this.Controls.Add(this.trackbar_volume);
             this.Name = "form_main";
             this.Text = "EqualizerAPO and Zune";
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trackbar_volume)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numeric_volume)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -198,6 +236,8 @@
         private System.Windows.Forms.Button button_remove_filter;
         private System.Windows.Forms.Button button_add_filter;
         private System.Windows.Forms.Label textblock_listening_port;
+        private System.Windows.Forms.TrackBar trackbar_volume;
+        private System.Windows.Forms.NumericUpDown numeric_volume;
     }
 }
 
