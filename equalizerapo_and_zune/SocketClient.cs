@@ -68,10 +68,15 @@ namespace equalizerapo_and_zune
         {
             string result = string.Empty;
 
+
             // Create DnsEndPoint. The hostName and port are passed in to this method.
             DnsEndPoint hostEntry = new DnsEndPoint(hostName, portNumber);
 
-            // Create a stream-based, TCP socket using the InterNetwork Address Family. 
+            // Create a stream-based, TCP socket using the InterNetwork Address Family.
+            if (_socket != null)
+            {
+                Close();
+            }
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
             // Create a SocketAsyncEventArgs object to be used in the connection request
@@ -114,7 +119,11 @@ namespace equalizerapo_and_zune
             // Create DnsEndPoint. The hostName and port are passed in to this method.
             IPEndPoint hostEntry = new IPEndPoint(ipAddress, portNumber);
 
-            // Create a stream-based, TCP socket using the InterNetwork Address Family. 
+            // Create a stream-based, TCP socket using the InterNetwork Address Family.
+            if (_socket != null)
+            {
+                Close();
+            }
             _socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             // Bind the socket to the local endpoint, and listen for incoming connections.
@@ -127,8 +136,6 @@ namespace equalizerapo_and_zune
                 _clientDone.Reset();
 
                 // Start an asynchronous socket to listen for connections and receive data from the client.
-
-                // Accept the connection and receive the first 10 bytes of data. 
                 Socket newSocket = _socket.Accept();
                 if (ConnectedEvent != null)
                 {
@@ -284,7 +291,7 @@ namespace equalizerapo_and_zune
         {
             if (_socket != null)
             {
-                System.Diagnostics.Debugger.Log(1, "", "closing socket\n");
+                _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
                 _socket = null;
             }

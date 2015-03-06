@@ -27,9 +27,11 @@ namespace equalizerapo_and_zune
         #region fields
 
         private static Connection Instance;
-        private static SocketClient CurrentSocketClient;
-        private Queue<string> messageQueue;
-        private Timer listener;
+        private SocketClient CurrentSocketClient;
+        private SocketClient ListeningSocket;
+        private Queue<string> MessageQueue;
+        private Timer MessageListenerTimer;
+        private Thread ListenerThread;
 
         #endregion
 
@@ -59,6 +61,33 @@ namespace equalizerapo_and_zune
         {
             Init();
             Connect(hostname, port);
+        }
+
+        ~Connection()
+        {
+            Close();
+        }
+
+        public void Close()
+        {
+            Connection.Instance = null;
+            if (CurrentSocketClient != null)
+            {
+                CurrentSocketClient.Close();
+            }
+            if (MessageListenerTimer != null)
+            {
+                MessageListenerTimer.Dispose();
+            }
+            if (ListeningSocket != null)
+            {
+                ListeningSocket.Close();
+            }
+            if (ListenerThread != null)
+            {
+                ListenerThread.Abort();
+                ListenerThread.Interrupt();
+            }
         }
 
         public string Connect(Socket socket)
@@ -95,9 +124,10 @@ namespace equalizerapo_and_zune
             return success;
         }
 
-        public void Listen()
+        public void ListenForIncomingConnections()
         {
-            new Thread(new ParameterizedThreadStart(Listener)).Start();
+            ListenerThread = new Thread(new ParameterizedThreadStart(StartConnectionListener));
+            ListenerThread.Start();
         }
 
         public string Send(string data)
@@ -131,7 +161,7 @@ namespace equalizerapo_and_zune
             }
 
             // start the listener
-            listener = new Timer(ContinueListening, null, 0, 500);
+            MessageListenerTimer = new Timer(ContinueListening, null, 0, 500);
         }
 
         #endregion
@@ -156,14 +186,18 @@ namespace equalizerapo_and_zune
             ListeningAddress = Array.FindLast(
                 Dns.GetHostEntry(string.Empty).AddressList,
                 a => a.AddressFamily == AddressFamily.InterNetwork);
-            messageQueue = new Queue<string>();
+            MessageQueue = new Queue<string>();
         }
 
-        private void Listener(object sender)
+        private void StartConnectionListener(object sender)
         {
-            SocketClient socket = new SocketClient();
-            socket.ConnectedEvent += new EventHandler(ConnectedSocket);
-            socket.Listen(Connection.ListeningAddress, Connection.APP_PORT);
+            if (ListeningSocket != null)
+            {
+                ListeningSocket.Close();
+            }
+            ListeningSocket = new SocketClient();
+            ListeningSocket.ConnectedEvent += new EventHandler(ConnectedSocket);
+            ListeningSocket.Listen(Connection.ListeningAddress, Connection.APP_PORT);
         }
 
         private void ConnectedSocket(object sender, EventArgs e)
@@ -182,11 +216,11 @@ namespace equalizerapo_and_zune
 
         private void ContinueListening(object sender)
         {
-            if (messageQueue.Count == 0)
+            if (MessageQueue.Count == 0)
             {
                 return;
             }
-            string message = messageQueue.Dequeue();
+            string message = MessageQueue.Dequeue();
 
             if (message == SocketClient.KEEP_ALIVE)
             {
@@ -224,7 +258,7 @@ namespace equalizerapo_and_zune
             {
                 message = e.SocketError.ToString();
             }
-            messageQueue.Enqueue(message);
+            MessageQueue.Enqueue(message);
 
             CurrentSocketClient.HandleIncomingMessages(
                 new SocketClient.SocketCallbackDelegate(SocketCallback));

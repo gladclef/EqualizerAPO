@@ -46,6 +46,11 @@ namespace equalizerapo_and_zune
             ZuneAPI.Instance = this;
         }
 
+        ~ZuneAPI()
+        {
+            Close();
+        }
+
         public bool Init() {
             if (IsZuneReady || IsConnectReady)
             {
@@ -62,6 +67,19 @@ namespace equalizerapo_and_zune
             return true;
         }
 
+        public void Close()
+        {
+            if (zuneThread != null && zuneThread.IsAlive)
+            {
+                zuneThread.Abort();
+                zuneThread.Interrupt();
+            }
+            if (connectThread != null && connectThread.IsAlive)
+            {
+                connectThread.Abort();
+                connectThread.Interrupt();
+            }
+        }
         public void ToNextTrack()
         {
             Application.DeferredInvoke(

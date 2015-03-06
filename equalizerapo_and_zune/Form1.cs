@@ -48,10 +48,16 @@ namespace equalizerapo_and_zune
             conAPI.ConnectedEvent += new EventHandler(DeferredConnectedSocket);
             conAPI.DisconnectedEvent += new EventHandler(messenger.DeferredDisconnectedSocket);
             conAPI.MessageRecievedEvent += new EventHandler(messenger.MessageReceived);
-            conAPI.Listen();
+            conAPI.ListenForIncomingConnections();
 
             // tell the user that we're listening, and on what port
             UpdateListenerDescription(false);
+        }
+
+        ~form_main()
+        {
+            zuneAPI.Close();
+            conAPI.Close();
         }
 
         public void UpdateTrackTitle(String newTitle)
