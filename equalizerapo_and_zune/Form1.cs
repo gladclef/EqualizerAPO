@@ -40,15 +40,9 @@ namespace equalizerapo_and_zune
             zuneAPI.Init();
 
             // start a messenger to communicate with app
-            messenger = new Messenger(this);
+            messenger = new Messenger();
+            messenger.ConnectedSocket = new Messenger.DeferredInvokeDelegate(ConnectedSocket);
             messenger.DisconnectedSocket = new Messenger.DeferredInvokeDelegate(DisconnectedSocket);
-
-            // create a listening connection
-            conAPI = Connection.GetInstance();
-            conAPI.ConnectedEvent += new EventHandler(DeferredConnectedSocket);
-            conAPI.DisconnectedEvent += new EventHandler(messenger.DeferredDisconnectedSocket);
-            conAPI.MessageRecievedEvent += new EventHandler(messenger.MessageReceived);
-            conAPI.ListenForIncomingConnections();
 
             // tell the user that we're listening, and on what port
             UpdateListenerDescription(false);
@@ -438,18 +432,7 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender)
         {
-            conAPI.StartListening();
             UpdateListenerDescription(true);
-        }
-
-        private void DeferredConnectedSocket(object sender, EventArgs e)
-        {
-            SocketClient.ConnectedEventArgs cea =
-                (SocketClient.ConnectedEventArgs)e;
-            conAPI.Connect(cea.newSocket);
-            Microsoft.Iris.Application.DeferredInvoke(
-                new Microsoft.Iris.DeferredInvokeHandler(ConnectedSocket),
-                Microsoft.Iris.DeferredInvokePriority.Normal);
         }
 
         private void DisconnectedSocket(object sender)
