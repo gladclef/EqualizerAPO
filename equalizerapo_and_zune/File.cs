@@ -130,9 +130,6 @@ namespace equalizerapo_and_zune
                     Filter filter = new Filter(freq, gain, Q);
                     filter.FilterChanged += new EventHandler(FilterChanged);
                     filters.Add(freq, filter);
-                    System.Diagnostics.Debugger.Log(1, "",
-                        String.Format("read filter: freq:{0}, gain:{1}, Q:{2}\n",
-                            filter.Frequency, filter.Gain, filter.Q));
                 }
             }
             CurrentFilters = filters;

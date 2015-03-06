@@ -54,7 +54,6 @@ namespace equalizerapo_and_zune
             {
                 Close();
             }
-            System.Diagnostics.Debugger.Log(1, "", "..connecting to socket\n");
             _socket = socket;
             return SUCCESS;
         }
@@ -128,11 +127,9 @@ namespace equalizerapo_and_zune
                 _clientDone.Reset();
 
                 // Start an asynchronous socket to listen for connections and receive data from the client.
-                System.Diagnostics.Debugger.Log(1, "", "..Waiting for a connection\n");
 
                 // Accept the connection and receive the first 10 bytes of data. 
                 Socket newSocket = _socket.Accept();
-                System.Diagnostics.Debugger.Log(1, "", "..Connected!\n");
                 if (ConnectedEvent != null)
                 {
                     ConnectedEvent(this, new ConnectedEventArgs(newSocket));
@@ -168,7 +165,6 @@ namespace equalizerapo_and_zune
                 socketEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(delegate(object s, SocketAsyncEventArgs e)
                 {
                     response = e.SocketError.ToString();
-                    System.Diagnostics.Debugger.Log(1, "", String.Format(">> {0} [{1}]\n", data, response));
 
                     // Unblock the UI thread
                     _clientDone.Set();
@@ -252,7 +248,6 @@ namespace equalizerapo_and_zune
                     {
                         response = e.SocketError.ToString();
                     }
-                    System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", response));
 
                     _clientDone.Set();
                 });

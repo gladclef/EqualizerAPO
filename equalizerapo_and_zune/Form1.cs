@@ -105,11 +105,6 @@ namespace equalizerapo_and_zune
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
 
-            System.Diagnostics.Debugger.Log(1, "",
-                String.Format("trackback min:{0}, max:{1}\n", trackbar_volume.Minimum, trackbar_volume.Maximum));
-            System.Diagnostics.Debugger.Log(1, "",
-                String.Format("numeric min:{0}, max:{1}\n", numeric_volume.Minimum, numeric_volume.Maximum));
-
             UpdatePreamp();
         }
 

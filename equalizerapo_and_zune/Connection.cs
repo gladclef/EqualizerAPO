@@ -132,7 +132,6 @@ namespace equalizerapo_and_zune
 
             // start the listener
             listener = new Timer(ContinueListening, null, 0, 500);
-            System.Diagnostics.Debugger.Log(1, "", "..started listening\n");
         }
 
         #endregion
@@ -183,7 +182,6 @@ namespace equalizerapo_and_zune
 
         private void ContinueListening(object sender)
         {
-            System.Diagnostics.Debugger.Log(1, "", "..checking for message\n");
             if (messageQueue.Count == 0)
             {
                 return;
@@ -226,7 +224,6 @@ namespace equalizerapo_and_zune
             {
                 message = e.SocketError.ToString();
             }
-            System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", message));
             messageQueue.Enqueue(message);
 
             CurrentSocketClient.HandleIncomingMessages(
