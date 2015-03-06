@@ -437,8 +437,8 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender)
         {
-            UpdateListenerDescription(true);
             conAPI.StartListening();
+            UpdateListenerDescription(true);
         }
 
         private void DeferredConnectedSocket(object sender, EventArgs e)

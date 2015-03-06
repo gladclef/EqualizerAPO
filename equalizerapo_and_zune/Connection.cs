@@ -19,6 +19,8 @@ namespace equalizerapo_and_zune
         public const int ECHO_PORT = 7;
         // used in testing with windows simple TCP/IP services
         public const int QOTD_PORT = 17;
+        // measured in seconds
+        public const int KEEP_ALIVE_TIMOUT = 3;
 
         #endregion
 
@@ -27,6 +29,7 @@ namespace equalizerapo_and_zune
         private static Connection Instance;
         private static SocketClient CurrentSocketClient;
         private Queue<string> messageQueue;
+        private Timer listener;
 
         #endregion
 
@@ -126,8 +129,10 @@ namespace equalizerapo_and_zune
             {
                 Connect(Connection.ListeningAddress.ToString(), Connection.APP_PORT);
             }
-            System.Diagnostics.Debugger.Log(1, "", "started listening\n");
-            new Thread(new ParameterizedThreadStart(ContinueListening)).Start();
+
+            // start the listener
+            listener = new Timer(ContinueListening, null, 0, 500);
+            System.Diagnostics.Debugger.Log(1, "", "..started listening\n");
         }
 
         #endregion
@@ -178,7 +183,7 @@ namespace equalizerapo_and_zune
 
         private void ContinueListening(object sender)
         {
-            Thread.Sleep(200);
+            System.Diagnostics.Debugger.Log(1, "", "..checking for message\n");
             if (messageQueue.Count == 0)
             {
                 return;
@@ -187,11 +192,11 @@ namespace equalizerapo_and_zune
 
             if (message == SocketClient.KEEP_ALIVE)
             {
-                System.Diagnostics.Debugger.Log(1, "", "..." + Send(SocketClient.KEEP_ALIVE_ACK) + "\n");
-                if (MessageRecievedEvent != null)
-                {
-                    MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
-                }
+                Send(SocketClient.KEEP_ALIVE_ACK);
+            }
+            else if (message == SocketClient.KEEP_ALIVE_ACK)
+            {
+                // do nothing
             }
             else if (message == SocketClient.OPERATION_TIMEOUT ||
                 message == SocketClient.UNINITIALIZED ||
@@ -206,8 +211,6 @@ namespace equalizerapo_and_zune
                     MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
                 }
             }
-
-            ContinueListening(sender);
         }
 
         private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs e)
@@ -223,7 +226,11 @@ namespace equalizerapo_and_zune
             {
                 message = e.SocketError.ToString();
             }
+            System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", message));
             messageQueue.Enqueue(message);
+
+            CurrentSocketClient.HandleIncomingMessages(
+                new SocketClient.SocketCallbackDelegate(SocketCallback));
         }
 
         #endregion
