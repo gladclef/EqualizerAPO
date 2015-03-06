@@ -30,16 +30,17 @@ namespace equalizerapo_and_zune
             set
             {
                 int newVal;
-                int gainMax = Convert.ToInt32(equalizerapo_api.GainMax);
+                int preAmpMax = equalizerapo_api.PREAMP_MAX;
                 newVal = Math.Max(
                     Math.Min(
                         value,
-                        gainMax),
-                    -gainMax);
-                if (preAmp == value)
+                        preAmpMax),
+                    -preAmpMax);
+                if (preAmp == newVal)
                 {
                     return;
                 }
+                preAmp = newVal;
                 SaveFile();
             }
         }

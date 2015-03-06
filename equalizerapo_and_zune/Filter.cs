@@ -56,7 +56,7 @@ namespace equalizerapo_and_zune
         /// The public interface to the private frequency value.
         /// get: straight forward
         /// set: caps the value between -15 and 15
-        ///     (from the <see cref="equalizerapo_api.GainMax"/>) and
+        ///     (from the <see cref="equalizerapo_api.GAIN_MAX"/>) and
         ///     makes a call to the <see cref="FilterChanged"/> event
         /// </summary>
         public double Gain {
@@ -66,8 +66,8 @@ namespace equalizerapo_and_zune
                     Math.Max(
                         Math.Min(
                             value,
-                            equalizerapo_api.GainMax),
-                        -equalizerapo_api.GainMax);
+                            equalizerapo_api.GAIN_MAX),
+                        -equalizerapo_api.GAIN_MAX);
                 if (FilterChanged != null)
                 {
                     FilterChanged(this, EventArgs.Empty);

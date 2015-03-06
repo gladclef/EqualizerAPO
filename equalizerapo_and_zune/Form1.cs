@@ -104,6 +104,12 @@ namespace equalizerapo_and_zune
             eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
+
+            System.Diagnostics.Debugger.Log(1, "",
+                String.Format("trackback min:{0}, max:{1}\n", trackbar_volume.Minimum, trackbar_volume.Maximum));
+            System.Diagnostics.Debugger.Log(1, "",
+                String.Format("numeric min:{0}, max:{1}\n", numeric_volume.Minimum, numeric_volume.Maximum));
+
             UpdatePreamp();
         }
 
@@ -155,7 +161,7 @@ namespace equalizerapo_and_zune
                 System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
 
             // set the range of the axis
-            double gainMax = equalizerapo_api.GainMax;
+            double gainMax = equalizerapo_api.GAIN_MAX;
             System.Windows.Forms.DataVisualization.Charting.Axis yaxis =
                 chart_filters.ChartAreas["ChartArea1"].AxisY;
             System.Windows.Forms.DataVisualization.Charting.Axis xaxis =
@@ -204,8 +210,8 @@ namespace equalizerapo_and_zune
                         x1 + i * boxSpacing, y1);
                     numeric.Width = boxSpacing - 5;
                     numeric.Height = boxHeight;
-                    numeric.Minimum = -Convert.ToInt32(equalizerapo_api.GainMax);
-                    numeric.Maximum = Convert.ToInt32(equalizerapo_api.GainMax);
+                    numeric.Minimum = -Convert.ToInt32(equalizerapo_api.GAIN_MAX);
+                    numeric.Maximum = Convert.ToInt32(equalizerapo_api.GAIN_MAX);
                     NumberInputs.AddLast(numeric);
                     this.Controls.Add(numeric);
                     numeric.ValueChanged += new EventHandler(number_inputs_ValueChanged);
@@ -281,7 +287,7 @@ namespace equalizerapo_and_zune
         /// <param name="filterIndex">if -1, then computer filter index</param>
         private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex)
         {
-            double gainMax = equalizerapo_api.GainMax;
+            double gainMax = equalizerapo_api.GAIN_MAX;
             double filterCount = eqAPI.GetFilters().Count;
 
             // bounding box constant, determined experimentally
@@ -363,8 +369,17 @@ namespace equalizerapo_and_zune
 
         private void UpdatePreamp()
         {
-            trackbar_volume.Value = eqAPI.GetPreAmp();
-            numeric_volume.Value = eqAPI.GetPreAmp();
+            if (trackbar_volume.InvokeRequired)
+            {
+                // thread-safe callback
+                DeferredEmptyCallback d = new DeferredEmptyCallback(UpdatePreamp);
+                this.Invoke(d, new object[] { });
+            }
+            else
+            {
+                trackbar_volume.Value = eqAPI.GetPreAmp();
+                numeric_volume.Value = eqAPI.GetPreAmp();
+            }
         }
 
         private void trackbar_volume_ValueChanged(object sender, EventArgs e)
@@ -447,7 +462,7 @@ namespace equalizerapo_and_zune
 
         delegate void SetTextCallback(String text);
         delegate void SetBoolCallback(bool isset);
-        delegate void ButtonAdjustCallback();
+        delegate void DeferredEmptyCallback();
         delegate void DeferredInvokeDelegate(object sender);
         delegate void EventInvokeDelegate(object sender, EventArgs e);
 

@@ -170,8 +170,8 @@
             // trackbar_volume
             // 
             this.trackbar_volume.Location = new System.Drawing.Point(65, 23);
-            this.trackbar_volume.Maximum = System.Convert.ToInt32(equalizerapo_api.GainMax);
-            this.trackbar_volume.Minimum = -System.Convert.ToInt32(equalizerapo_api.GainMax);
+            this.trackbar_volume.Maximum = equalizerapo_api.PREAMP_MAX;
+            this.trackbar_volume.Minimum = -equalizerapo_api.PREAMP_MAX;
             this.trackbar_volume.Name = "trackbar_volume";
             this.trackbar_volume.Size = new System.Drawing.Size(307, 56);
             this.trackbar_volume.SmallChange = 5;
@@ -183,12 +183,12 @@
             // 
             this.numeric_volume.Location = new System.Drawing.Point(12, 25);
             this.numeric_volume.Maximum = new decimal(new int[] {
-            System.Convert.ToInt32(equalizerapo_api.GainMax),
+            equalizerapo_api.PREAMP_MAX,
             0,
             0,
             0});
             this.numeric_volume.Minimum = new decimal(new int[] {
-            System.Convert.ToInt32(equalizerapo_api.GainMax),
+            equalizerapo_api.PREAMP_MAX,
             0,
             0,
             -2147483648});

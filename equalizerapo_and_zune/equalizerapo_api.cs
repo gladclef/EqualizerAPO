@@ -9,6 +9,13 @@ namespace equalizerapo_and_zune
 {
     public class equalizerapo_api
     {
+        #region constants
+
+        public const int PREAMP_MAX = 30;
+        public const double GAIN_MAX = 15;
+
+        #endregion
+
         #region fields
 
         private bool applyEqualizer = true;
@@ -19,7 +26,6 @@ namespace equalizerapo_and_zune
 
         public static equalizerapo_api Instance { get; private set; }
         public File CurrentFile { get; private set; }
-        public static double GainMax { get; private set; }
 
         #endregion
 
@@ -34,7 +40,6 @@ namespace equalizerapo_and_zune
         public equalizerapo_api()
         {
             CurrentFile = null;
-            GainMax = 15;
         }
 
         /// <summary>
