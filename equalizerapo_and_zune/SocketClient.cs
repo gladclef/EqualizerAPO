@@ -35,8 +35,7 @@ namespace equalizerapo_and_zune
         // Cached Socket object that will be used by each call for the lifetime of this class
         Socket _socket = null;
 
-        // Signaling object used to notify when an asynchronous operation is completed
-        static ManualResetEvent _clientDone = new ManualResetEvent(false);
+        private Accepter ListenAccepter;
 
         #endregion
 
@@ -47,6 +46,11 @@ namespace equalizerapo_and_zune
         #endregion
 
         #region public methods
+
+        ~SocketClient()
+        {
+            Close();
+        }
 
         public string Connect(Socket socket)
         {
@@ -67,7 +71,8 @@ namespace equalizerapo_and_zune
         public string Connect(string hostName, int portNumber)
         {
             string result = string.Empty;
-
+            // Signaling object used to notify when an asynchronous operation is completed
+            ManualResetEvent clientDone = new ManualResetEvent(false);
 
             // Create DnsEndPoint. The hostName and port are passed in to this method.
             DnsEndPoint hostEntry = new DnsEndPoint(hostName, portNumber);
@@ -91,20 +96,18 @@ namespace equalizerapo_and_zune
                 result = e.SocketError.ToString();
 
                 // Signal that the request is complete, unblocking the UI thread
-                _clientDone.Set();
+                clientDone.Set();
             });
 
             // Sets the state of the event to nonsignaled, causing threads to block
-            _clientDone.Reset();
+            clientDone.Reset();
 
             // Make an asynchronous Connect request over the socket
             _socket.ConnectAsync(socketEventArg);
 
             // Block the UI thread for a maximum of TIMEOUT_MILLISECONDS milliseconds.
             // If no response comes back within this time then proceed
-            _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
-
-            System.Diagnostics.Debugger.Log(1, "", "established new connection");
+            clientDone.WaitOne(TIMEOUT_MILLISECONDS);
 
             return result;
         }
@@ -130,21 +133,9 @@ namespace equalizerapo_and_zune
             _socket.Bind(hostEntry);
             _socket.Listen(100);
 
-            while (true)
-            {
-                // Set the event to nonsignaled state.
-                _clientDone.Reset();
-
-                // Start an asynchronous socket to listen for connections and receive data from the client.
-                Socket newSocket = _socket.Accept();
-                if (ConnectedEvent != null)
-                {
-                    ConnectedEvent(this, new ConnectedEventArgs(newSocket));
-                }
-
-                // Wait until a connection is made and processed before continuing.
-                _clientDone.WaitOne(100);
-            }
+            // get the object ready to continue to receive connections
+            ListenAccepter = new Accepter(_socket, ConnectedEvent);
+            ListenAccepter.AcceptNextAsync();
         }
 
         /// <summary>
@@ -159,6 +150,8 @@ namespace equalizerapo_and_zune
             // We are re-using the _socket object initialized in the Connect method
             if (_socket != null)
             {
+                // Signaling object used to notify when an asynchronous operation is completed
+                ManualResetEvent clientDone = new ManualResetEvent(false);
                 // Create SocketAsyncEventArgs context object
                 SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
 
@@ -174,7 +167,7 @@ namespace equalizerapo_and_zune
                     response = e.SocketError.ToString();
 
                     // Unblock the UI thread
-                    _clientDone.Set();
+                    clientDone.Set();
                 });
 
                 // Add the data to be sent into the buffer
@@ -182,14 +175,14 @@ namespace equalizerapo_and_zune
                 socketEventArg.SetBuffer(payload, 0, payload.Length);
 
                 // Sets the state of the event to nonsignaled, causing threads to block
-                _clientDone.Reset();
+                clientDone.Reset();
 
                 // Make an asynchronous Send request over the socket
                 _socket.SendAsync(socketEventArg);
 
                 // Block the UI thread for a maximum of TIMEOUT_MILLISECONDS milliseconds.
                 // If no response comes back within this time then proceed
-                _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
+                clientDone.WaitOne(TIMEOUT_MILLISECONDS);
             }
             else
             {
@@ -233,6 +226,8 @@ namespace equalizerapo_and_zune
             // We are receiving over an established socket connection
             if (_socket != null)
             {
+                // Signaling object used to notify when an asynchronous operation is completed
+                ManualResetEvent clientDone = new ManualResetEvent(false);
                 // Create SocketAsyncEventArgs context object
                 SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
                 socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
@@ -256,11 +251,11 @@ namespace equalizerapo_and_zune
                         response = e.SocketError.ToString();
                     }
 
-                    _clientDone.Set();
+                    clientDone.Set();
                 });
 
                 // Sets the state of the event to nonsignaled, causing threads to block
-                _clientDone.Reset();
+                clientDone.Reset();
 
                 // Make an asynchronous Receive request over the socket
                 _socket.ReceiveAsync(socketEventArg);
@@ -269,11 +264,11 @@ namespace equalizerapo_and_zune
                 // If no response comes back within this time then proceed
                 if (waitForTimeout)
                 {
-                    _clientDone.WaitOne(TIMEOUT_MILLISECONDS);
+                    clientDone.WaitOne(TIMEOUT_MILLISECONDS);
                 }
                 else
                 {
-                    _clientDone.WaitOne(200);
+                    clientDone.WaitOne(200);
                 }
             }
             else
@@ -289,11 +284,18 @@ namespace equalizerapo_and_zune
         /// </summary>
         public void Close()
         {
+            if (ListenAccepter != null)
+            {
+                ListenAccepter.Close();
+            }
             if (_socket != null)
             {
-                _socket.Shutdown(SocketShutdown.Both);
-                _socket.Close();
+                FreeSocket(_socket);
                 _socket = null;
+            }
+            if (ConnectedEvent != null)
+            {
+                ConnectedEvent = null;
             }
         }
 
@@ -320,7 +322,52 @@ namespace equalizerapo_and_zune
             }
         }
 
+        public static void FreeSocket(Socket _socket)
+        {
+            try
+            {
+                try
+                {
+                    _socket.Shutdown(SocketShutdown.Both);
+                }
+                catch (SocketException e)
+                {
+                    // do something here?
+                }
+                try
+                {
+                    _socket.Close();
+                }
+                catch (SocketException e)
+                {
+                    // do something here?
+                }
+                try
+                {
+                    _socket.Disconnect(false);
+                }
+                catch (SocketException e)
+                {
+                    // do something here?
+                }
+            }
+            catch (ObjectDisposedException) { }
+        }
+
+        public static void EchoStackTrace()
+        {
+            string prepend = "--";
+            foreach (System.Diagnostics.StackFrame frame in (new System.Diagnostics.StackTrace()).GetFrames())
+            {
+                System.Diagnostics.Debugger.Log(1, "", String.Format(
+                    "{0} {1}:{3}:{2}\n", prepend, frame.GetFileLineNumber(), frame.GetMethod().ToString(), frame.GetFileName()));
+                prepend += " ";
+            }
+        }
+
         #endregion
+
+        #region custom event args
 
         public class ConnectedEventArgs : EventArgs
         {
@@ -332,9 +379,86 @@ namespace equalizerapo_and_zune
             }
         }
 
+        #endregion
+
         #region delegates
 
         public delegate void SocketCallbackDelegate(object s, System.Net.Sockets.SocketAsyncEventArgs e);
+
+        #endregion
+
+        #region classes
+
+        private class Accepter {
+            private Socket _socket;
+            private EventHandler ConnectedEvent;
+
+            public Accepter(Socket _socket, EventHandler ConnectedEvent)
+            {
+                this._socket = _socket;
+                this.ConnectedEvent = ConnectedEvent;
+            }
+
+            ~Accepter()
+            {
+                Close();
+            }
+
+            public void Close()
+            {
+                if (_socket != null) {
+                    SocketClient.FreeSocket(_socket);
+                    _socket = null;
+                }
+                ConnectedEvent = null;
+            }
+
+            public void AcceptNextAsync() {
+                // get arguments ready for async accept
+                SocketAsyncEventArgs args = new SocketAsyncEventArgs();
+                args.Completed += new EventHandler<SocketAsyncEventArgs>(AcceptConnection);
+
+                // Start an asynchronous socket to listen for connections
+                if (_socket != null)
+                {
+                    try
+                    {
+                        _socket.AcceptAsync(args);
+                    }
+                    catch (ObjectDisposedException) { }
+                }
+            }
+
+            private void AcceptConnection(object sender, SocketAsyncEventArgs e)
+            {
+                // check for success
+                if (e.SocketError == SocketError.Success)
+                {
+                    System.Diagnostics.Debugger.Log(1, "", ".." +
+                        "ConnectSocket:" + (e.ConnectSocket == null ? "null" : "not null") +
+                        " AcceptSocket:" + (e.AcceptSocket == null ? "null" : "not null") +
+                        " AcceptIsSame:" + (e.AcceptSocket == _socket ? "yes" : "no") +
+                        "\n");
+                    System.Diagnostics.Debugger.Log(1, "", "connection in SocketClient [" + e.SocketError + "]\n");
+
+                    // apply connected event handler that was set for the SocketClient
+                    if (ConnectedEvent != null)
+                    {
+                        Socket newSocket = e.AcceptSocket;
+                        ConnectedEvent(this, new ConnectedEventArgs(newSocket));
+                    }
+                }
+                else
+                {
+                    // so what was the error, exactly?
+                    System.Diagnostics.Debugger.Log(1, "",
+                        "-- error in accepting socket: " + e.SocketError + "\n");
+                }
+
+                // accept the next connection
+                AcceptNextAsync();
+            }
+        }
 
         #endregion
     }

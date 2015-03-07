@@ -40,9 +40,9 @@ namespace equalizerapo_and_zune
             zuneAPI.Init();
 
             // start a messenger to communicate with app
-            messenger = new Messenger();
-            messenger.ConnectedSocket = new Messenger.DeferredInvokeDelegate(ConnectedSocket);
-            messenger.DisconnectedSocket = new Messenger.DeferredInvokeDelegate(DisconnectedSocket);
+            messenger = new Messenger(
+                new Messenger.DeferredInvokeDelegate(ConnectedSocket),
+                new Messenger.DeferredInvokeDelegate(DisconnectedSocket));
 
             // tell the user that we're listening, and on what port
             UpdateListenerDescription(false);
@@ -432,6 +432,7 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender)
         {
+            System.Diagnostics.Debugger.Log(1, "", "connection in form_main\n");
             UpdateListenerDescription(true);
         }
 
