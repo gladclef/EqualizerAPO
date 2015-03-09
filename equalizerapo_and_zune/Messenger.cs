@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,8 +17,8 @@ namespace equalizerapo_and_zune
 
         #region properties
 
-        public DeferredInvokeDelegate ConnectedSocket { get; set; }
-        public DeferredInvokeDelegate DisconnectedSocket { get; set; }
+        public DeferredInvokeDelegate ConnectedSocketCall { get; set; }
+        public DeferredInvokeDelegate DisconnectedSocketCall { get; set; }
 
         #endregion
 
@@ -26,8 +27,8 @@ namespace equalizerapo_and_zune
         public Messenger(DeferredInvokeDelegate con, DeferredInvokeDelegate dis)
         {
             // set initial connection values
-            this.ConnectedSocket = con;
-            this.DisconnectedSocket = dis;
+            this.ConnectedSocketCall = con;
+            this.DisconnectedSocketCall = dis;
 
             // create a listening connection
             InitConAPI();
@@ -43,41 +44,79 @@ namespace equalizerapo_and_zune
         {
             conAPI.Close();
             InitConAPI();
-            if (DisconnectedSocket != null)
+            if (DisconnectedSocketCall != null)
             {
-                Microsoft.Iris.Application.DeferredInvoke(
-                    new Microsoft.Iris.DeferredInvokeHandler(DisconnectedSocket),
-                    Microsoft.Iris.DeferredInvokePriority.Normal);
+                DisconnectedSocketCall(this);
             }
+        }
+
+        public string[] GetPossibleIPAddresses()
+        {
+            System.Diagnostics.Debugger.Log(1, "", "GetPossibleIPAddresses 1\n");
+            IPAddress[] addresses = Connection.ListeningAddresses();
+
+            // get the addresses
+            LinkedList<string> retval = new LinkedList<string>(
+                Array.ConvertAll(
+                    addresses,
+                    (IPAddress address) => {
+                        return address.ToString();
+                    }));
+
+            // move the selected address to the top
+            if (addresses.First() != conAPI.ListeningAddress &&
+                conAPI.ListeningAddress != null)
+            {
+                string current = conAPI.ListeningAddress.ToString();
+                retval.Remove(current);
+                retval.AddFirst(current);
+            }
+
+            // return the new values
+            return retval.ToArray();
+        }
+
+        public bool ChangeListeningAddress(string newAddress)
+        {
+            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 1\n");
+            if (newAddress == conAPI.ListeningAddress.ToString())
+            {
+                return true;
+            }
+            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 2\n");
+            foreach (IPAddress address in Connection.ListeningAddresses())
+            {
+                if (address.ToString() == newAddress)
+                {
+                    conAPI.ChangeListeningAddress(address);
+                    return true;
+                }
+            }
+            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 3\n");
+            return false;
         }
 
         #endregion
 
         #region private methods
 
-        private void DeferredConnectedSocket(object sender, EventArgs e)
+        private void ConnectedSocket(object sender, EventArgs e)
         {
             SocketClient.ConnectedEventArgs cea =
                 (SocketClient.ConnectedEventArgs)e;
             System.Diagnostics.Debugger.Log(1, "", "connection in Messenger [" + (cea.newSocket == null ? "null" : "not null") + "]\n");
             conAPI.Connect(cea.newSocket);
-            System.Diagnostics.Debugger.Log(1, "", "1");
             conAPI.StartListening();
-            System.Diagnostics.Debugger.Log(1, "", "2");
-            if (ConnectedSocket != null)
+            if (ConnectedSocketCall != null)
             {
-                System.Diagnostics.Debugger.Log(1, "", "3");
-                Microsoft.Iris.Application.DeferredInvoke(
-                    new Microsoft.Iris.DeferredInvokeHandler(ConnectedSocket),
-                    Microsoft.Iris.DeferredInvokePriority.Normal);
+                ConnectedSocketCall(this);
             }
-            System.Diagnostics.Debugger.Log(1, "", "4");
         }
 
         private void InitConAPI()
         {
             conAPI = Connection.GetInstance();
-            conAPI.ConnectedEvent += new EventHandler(DeferredConnectedSocket);
+            conAPI.ConnectedEvent += new EventHandler(ConnectedSocket);
             conAPI.DisconnectedEvent += new EventHandler(DeferredDisconnectedSocket);
             conAPI.MessageRecievedEvent += new EventHandler(MessageReceived);
             conAPI.ListenForIncomingConnections();

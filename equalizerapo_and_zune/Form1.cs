@@ -12,6 +12,13 @@ namespace equalizerapo_and_zune
 {
     public partial class form_main : Form
     {
+        #region constants
+
+        public const string CONNECTION_ESTABLISHED = "Connected!";
+        public const string LISTENING_FOR_CONNECTION = "Listening on: ";
+
+        #endregion
+
         #region fields
 
         public ZuneAPI zuneAPI;
@@ -405,9 +412,47 @@ namespace equalizerapo_and_zune
             }
         }
 
+        private void combobox_listening_port_SelectedValueChanged(object sender, System.EventArgs e)
+        {
+            if (combobox_listening_port.InvokeRequired)
+            {
+                // thread-safe callback
+                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 1\n");
+                EventInvokeDelegate d = 
+                    new EventInvokeDelegate(combobox_listening_port_SelectedValueChanged);
+                this.Invoke(d, new object[] { sender, e });
+            }
+            else
+            {
+                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 2\n");
+                if (messenger == null)
+                {
+                    return;
+                }
+
+                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 3\n");
+                messenger.ChangeListeningAddress(
+                    combobox_listening_port.SelectedValue.ToString());
+                UpdateListenerDescription();
+                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 4\n");
+            }
+        }
+
         #endregion
 
         #region connection methods
+
+        private void UpdateListenerDescription()
+        {
+            if (textblock_listening_port.Text == form_main.CONNECTION_ESTABLISHED)
+            {
+                UpdateListenerDescription(true);
+            }
+            else
+            {
+                UpdateListenerDescription(false);
+            }
+        }
 
         private void UpdateListenerDescription(bool connected)
         {
@@ -421,11 +466,23 @@ namespace equalizerapo_and_zune
             {
                 if (!connected)
                 {
-                    textblock_listening_port.Text = "Listening on: " + Connection.ListeningAddress;
+                    string[] listeningAddresses = messenger.GetPossibleIPAddresses();
+                    System.Diagnostics.Debugger.Log(1, "", "listening address: \n");
+                    foreach (string address in listeningAddresses)
+                    {
+                        System.Diagnostics.Debugger.Log(1, "", "    " + address + "\n");
+                    }
+                    textblock_listening_port.Text = form_main.LISTENING_FOR_CONNECTION;
+                    combobox_listening_port.DataSource = listeningAddresses;
+                    System.Diagnostics.Debugger.Log(1, "", "first value: " + listeningAddresses.First() + "\n");
+                    combobox_listening_port.SelectedIndex = 0;
+                    System.Diagnostics.Debugger.Log(1, "", "selected value: " + combobox_listening_port.SelectedValue + "\n");
+                    combobox_listening_port.Show();
                 }
                 else
                 {
-                    textblock_listening_port.Text = "Connected!";
+                    textblock_listening_port.Text = form_main.CONNECTION_ESTABLISHED;
+                    combobox_listening_port.Hide();
                 }
             }
         }

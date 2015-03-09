@@ -39,7 +39,7 @@ namespace equalizerapo_and_zune
 
         #region properties
 
-        public static IPAddress ListeningAddress { get; private set; }
+        public IPAddress ListeningAddress { get; private set; }
 
         #endregion
 
@@ -147,6 +147,38 @@ namespace equalizerapo_and_zune
             ListenerThread.Start();
         }
 
+        public void ChangeListeningAddress(IPAddress newAddress)
+        {
+            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 1\n");
+            bool alreadyListening = false;
+
+            // change the address
+            ListeningAddress = newAddress;
+
+            // close the current listener
+            if (ListeningSocket != null)
+            {
+                System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 2\n");
+                alreadyListening = true;
+                ListeningSocket.Close();
+            }
+            if (ListenerThread != null)
+            {
+                System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 3\n");
+                alreadyListening = true;
+                ListenerThread.Abort();
+                ListenerThread.Interrupt();
+            }
+
+            // open a new one if already open
+            if (alreadyListening)
+            {
+                System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 4\n");
+                ListenForIncomingConnections();
+            }
+            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 5\n");
+        }
+
         public string Send(string data)
         {
             if (CurrentSocketClient == null)
@@ -174,7 +206,7 @@ namespace equalizerapo_and_zune
         {
             if (CurrentSocketClient == null)
             {
-                Connect(Connection.ListeningAddress.ToString(), Connection.APP_PORT);
+                Connect(ListeningAddress.ToString(), Connection.APP_PORT);
             }
 
             // start the listener
@@ -225,6 +257,14 @@ namespace equalizerapo_and_zune
             }
         }
 
+        public static IPAddress[] ListeningAddresses()
+        {
+            System.Diagnostics.Debugger.Log(1, "", "ListeningAddresses 1\n");
+            return Array.FindAll(
+                Dns.GetHostEntry(string.Empty).AddressList,
+                a => a.AddressFamily == AddressFamily.InterNetwork);
+        }
+
         #endregion
 
         #region private methods
@@ -232,9 +272,7 @@ namespace equalizerapo_and_zune
         private void Init()
         {
             KeepAliveMsgReceived = true;
-            ListeningAddress = Array.FindLast(
-                Dns.GetHostEntry(string.Empty).AddressList,
-                a => a.AddressFamily == AddressFamily.InterNetwork);
+            ListeningAddress = Connection.ListeningAddresses().Last();
             MessageQueue = new Queue<string>();
         }
 
@@ -246,7 +284,7 @@ namespace equalizerapo_and_zune
             }
             ListeningSocket = new SocketClient();
             ListeningSocket.ConnectedEvent += new EventHandler(ConnectedSocket);
-            ListeningSocket.Listen(Connection.ListeningAddress, Connection.APP_PORT);
+            ListeningSocket.Listen(ListeningAddress, Connection.APP_PORT);
         }
 
         private void ConnectedSocket(object sender, EventArgs e)
