@@ -37,7 +37,6 @@ namespace equalizerapo_and_zune
         public void MessageReceived(object sender, EventArgs e) {
             Connection.MessageReceivedEventArgs cea =
                 (Connection.MessageReceivedEventArgs)e;
-            System.Diagnostics.Debugger.Log(1, "", "<< " + cea.message + "\n");
         }
 
         public void DeferredDisconnectedSocket(object sender, EventArgs e)
@@ -52,7 +51,6 @@ namespace equalizerapo_and_zune
 
         public string[] GetPossibleIPAddresses()
         {
-            System.Diagnostics.Debugger.Log(1, "", "GetPossibleIPAddresses 1\n");
             IPAddress[] addresses = Connection.ListeningAddresses();
 
             // get the addresses
@@ -78,12 +76,10 @@ namespace equalizerapo_and_zune
 
         public bool ChangeListeningAddress(string newAddress)
         {
-            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 1\n");
             if (newAddress == conAPI.ListeningAddress.ToString())
             {
                 return true;
             }
-            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 2\n");
             foreach (IPAddress address in Connection.ListeningAddresses())
             {
                 if (address.ToString() == newAddress)
@@ -92,7 +88,6 @@ namespace equalizerapo_and_zune
                     return true;
                 }
             }
-            System.Diagnostics.Debugger.Log(1, "", "ChangeListeningAddress 3\n");
             return false;
         }
 
@@ -104,9 +99,6 @@ namespace equalizerapo_and_zune
         {
             SocketClient.ConnectedEventArgs cea =
                 (SocketClient.ConnectedEventArgs)e;
-            System.Diagnostics.Debugger.Log(1, "", "connection in Messenger [" + (cea.newSocket == null ? "null" : "not null") + "]\n");
-            conAPI.Connect(cea.newSocket);
-            conAPI.StartListening();
             if (ConnectedSocketCall != null)
             {
                 ConnectedSocketCall(this);

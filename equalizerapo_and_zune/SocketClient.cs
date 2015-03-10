@@ -15,7 +15,7 @@ namespace equalizerapo_and_zune
 
         // Define a timeout in milliseconds for each asynchronous call. If a response is not received within this 
         // timeout period, the call is aborted.
-        const int TIMEOUT_MILLISECONDS = 5000;
+        const int TIMEOUT_MILLISECONDS = 4000;
 
         // The maximum size of the data buffer to use with the asynchronous socket methods
         const int MAX_BUFFER_SIZE = 2048;
@@ -27,6 +27,9 @@ namespace equalizerapo_and_zune
         public const string KEEP_ALIVE = "Keep alive check";
         public const string KEEP_ALIVE_ACK = "Keep alive acknowledged";
         public const string NO_MESSAGE = "No message available";
+        public const string DISCONNECTED = "NotConnected";
+        public const string CONNECTION_ABORTED = "ConnectionAborted";
+        public const string CONNECTION_RESET = "ConnectionReset";
 
         #endregion
 
@@ -352,18 +355,18 @@ namespace equalizerapo_and_zune
                 }
             }
             catch (ObjectDisposedException) { }
-        }
+            }
 
         public static void EchoStackTrace()
-        {
-            string prepend = "--";
-            foreach (System.Diagnostics.StackFrame frame in (new System.Diagnostics.StackTrace()).GetFrames())
             {
-                System.Diagnostics.Debugger.Log(1, "", String.Format(
-                    "{0} {1}:{3}:{2}\n", prepend, frame.GetFileLineNumber(), frame.GetMethod().ToString(), frame.GetFileName()));
-                prepend += " ";
+                string prepend = "--";
+                foreach (System.Diagnostics.StackFrame frame in (new System.Diagnostics.StackTrace()).GetFrames())
+                {
+                    System.Diagnostics.Debugger.Log(1, "", String.Format(
+                        "{0} {1}:{3}:{2}\n", prepend, frame.GetFileLineNumber(), frame.GetMethod().ToString(), frame.GetFileName()));
+                    prepend += " ";
+                }
             }
-        }
 
         #endregion
 
@@ -434,13 +437,6 @@ namespace equalizerapo_and_zune
                 // check for success
                 if (e.SocketError == SocketError.Success)
                 {
-                    System.Diagnostics.Debugger.Log(1, "", ".." +
-                        "ConnectSocket:" + (e.ConnectSocket == null ? "null" : "not null") +
-                        " AcceptSocket:" + (e.AcceptSocket == null ? "null" : "not null") +
-                        " AcceptIsSame:" + (e.AcceptSocket == _socket ? "yes" : "no") +
-                        "\n");
-                    System.Diagnostics.Debugger.Log(1, "", "connection in SocketClient [" + e.SocketError + "]\n");
-
                     // apply connected event handler that was set for the SocketClient
                     if (ConnectedEvent != null)
                     {

@@ -417,24 +417,20 @@ namespace equalizerapo_and_zune
             if (combobox_listening_port.InvokeRequired)
             {
                 // thread-safe callback
-                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 1\n");
                 EventInvokeDelegate d = 
                     new EventInvokeDelegate(combobox_listening_port_SelectedValueChanged);
                 this.Invoke(d, new object[] { sender, e });
             }
             else
             {
-                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 2\n");
                 if (messenger == null)
                 {
                     return;
                 }
 
-                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 3\n");
                 messenger.ChangeListeningAddress(
                     combobox_listening_port.SelectedValue.ToString());
                 UpdateListenerDescription();
-                System.Diagnostics.Debugger.Log(1, "", "combobox_listening_port_SelectedValueChanged 4\n");
             }
         }
 
@@ -467,16 +463,9 @@ namespace equalizerapo_and_zune
                 if (!connected)
                 {
                     string[] listeningAddresses = messenger.GetPossibleIPAddresses();
-                    System.Diagnostics.Debugger.Log(1, "", "listening address: \n");
-                    foreach (string address in listeningAddresses)
-                    {
-                        System.Diagnostics.Debugger.Log(1, "", "    " + address + "\n");
-                    }
                     textblock_listening_port.Text = form_main.LISTENING_FOR_CONNECTION;
                     combobox_listening_port.DataSource = listeningAddresses;
-                    System.Diagnostics.Debugger.Log(1, "", "first value: " + listeningAddresses.First() + "\n");
                     combobox_listening_port.SelectedIndex = 0;
-                    System.Diagnostics.Debugger.Log(1, "", "selected value: " + combobox_listening_port.SelectedValue + "\n");
                     combobox_listening_port.Show();
                 }
                 else
@@ -489,7 +478,6 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender)
         {
-            System.Diagnostics.Debugger.Log(1, "", "connection in form_main\n");
             UpdateListenerDescription(true);
         }
 

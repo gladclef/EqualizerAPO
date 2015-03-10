@@ -80,6 +80,7 @@ namespace equalizerapo_and_zune
                 connectThread.Interrupt();
             }
         }
+
         public void ToNextTrack()
         {
             Application.DeferredInvoke(
@@ -126,7 +127,9 @@ namespace equalizerapo_and_zune
             }
 
             // bind events
-            Application.DeferredInvoke(new DeferredInvokeHandler(BindEvents), DeferredInvokePriority.Normal);
+            Application.DeferredInvoke(
+                new DeferredInvokeHandler(BindEvents),
+                DeferredInvokePriority.Normal);
         }
 
         private void TransportPropertyChanged(object sender, PropertyChangedEventArgs e)
