@@ -108,6 +108,11 @@ namespace equalizerapo_and_zune
 
         public void ZeroOutEqualizer()
         {
+            if (CurrentFile == null)
+            {
+                return;
+            }
+
             // turn of write-through until the last filter has been updated
             CurrentFile.WriteThrough = false;
 
@@ -126,21 +131,37 @@ namespace equalizerapo_and_zune
 
         public void RemoveFilter()
         {
+            if (CurrentFile == null)
+            {
+                return;
+            }
             CurrentFile.RemoveFilter();
         }
 
         public void AddFilter()
         {
+            if (CurrentFile == null)
+            {
+                return;
+            }
             CurrentFile.AddFilter();
         }
 
         public void ChangePreamp(int preAmp)
         {
+            if (CurrentFile == null)
+            {
+                return;
+            }
             CurrentFile.PreAmp = preAmp;
         }
 
         public int GetPreAmp()
         {
+            if (CurrentFile == null)
+            {
+                return 0;
+            }
             return CurrentFile.PreAmp;
         }
 

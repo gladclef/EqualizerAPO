@@ -22,7 +22,7 @@ namespace equalizerapo_and_zune
         public const int QOTD_PORT = 17;
         // measured in seconds
         public const int KEEP_ALIVE_TIMOUT = 1;
-        public const int LISTEN_MESSAGE_TIMEOUT = 1;
+        public const double LISTEN_MESSAGE_TIMEOUT = 0.5;
         public const double SHORT_MESSAGE_TIMEOUT = 0.05;
         // indicates that a message was blocked for being a non-important message
         public const string MESSAGE_BLOCKED = "message blocked";
@@ -222,7 +222,8 @@ namespace equalizerapo_and_zune
             {
                 Connection.KillTimer(MessageListenerTimer, "MessageListenerTimer");
             }
-            int listenMessageTimout = Connection.LISTEN_MESSAGE_TIMEOUT * 1000;
+            int listenMessageTimout = Convert.ToInt32(
+                Connection.LISTEN_MESSAGE_TIMEOUT * 1000);
             MessageListenerTimer = new System.Timers.Timer(listenMessageTimout);
             MessageListenerTimer.Elapsed +=
                 new System.Timers.ElapsedEventHandler(GetMessage);
@@ -233,7 +234,8 @@ namespace equalizerapo_and_zune
             {
                 Connection.KillTimer(ShortMessageListenerTimer, "ShortMessageListenerTimer");
             }
-            int shortListenMessageTimout = Convert.ToInt32(Connection.SHORT_MESSAGE_TIMEOUT * 1000);
+            int shortListenMessageTimout = Convert.ToInt32(
+                Connection.SHORT_MESSAGE_TIMEOUT * 1000);
             ShortMessageListenerTimer = new System.Timers.Timer(shortListenMessageTimout);
             ShortMessageListenerTimer.Elapsed +=
                 new System.Timers.ElapsedEventHandler(GetMessage);
