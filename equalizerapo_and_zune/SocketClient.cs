@@ -151,7 +151,12 @@ namespace equalizerapo_and_zune
             string response = OPERATION_TIMEOUT;
 
             // We are re-using the _socket object initialized in the Connect method
-            if (_socket != null)
+            if (_socket == null)
+            {
+                return UNINITIALIZED;
+            }
+
+            try 
             {
                 // Signaling object used to notify when an asynchronous operation is completed
                 ManualResetEvent clientDone = new ManualResetEvent(false);
@@ -187,9 +192,10 @@ namespace equalizerapo_and_zune
                 // If no response comes back within this time then proceed
                 clientDone.WaitOne(TIMEOUT_MILLISECONDS);
             }
-            else
+            catch (ObjectDisposedException)
             {
-                response = UNINITIALIZED;
+                response = DISCONNECTED;
+                Close();
             }
 
             return response;

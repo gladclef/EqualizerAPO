@@ -130,6 +130,9 @@ namespace equalizerapo_and_zune
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
 
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.TRACK_CHANGED));
+
             UpdatePreamp();
         }
 

@@ -118,6 +118,11 @@ namespace equalizerapo_and_zune
             return success;
         }
 
+        public bool IsConnected()
+        {
+            return (CurrentSocketClient != null);
+        }
+
         public void ListenForIncomingConnections()
         {
             ListenerThread = new Thread(new ParameterizedThreadStart(StartConnectionListener));

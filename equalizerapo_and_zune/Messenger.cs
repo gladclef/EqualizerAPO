@@ -93,7 +93,10 @@ namespace equalizerapo_and_zune
 
         public void Send(string message)
         {
-            conAPI.Send(message);
+            if (conAPI.IsConnected())
+            {
+                conAPI.Send(message);
+            }
         }
 
         #endregion
