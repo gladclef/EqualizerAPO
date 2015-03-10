@@ -105,6 +105,9 @@ namespace equalizerapo_and_zune
         private void TrackChanged(object sender, EventArgs e)
         {
             DeferredUpdateAll(sender);
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.TRACK_CHANGED),
+                true);
         }
 
         private void EqualizerChanged(object sender, EventArgs e)
@@ -129,9 +132,6 @@ namespace equalizerapo_and_zune
             eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
-
-            messenger.Send(messageParser.CreateMessage(
-                MessageParser.MESSAGE_TYPE.TRACK_CHANGED));
 
             UpdatePreamp();
         }
@@ -516,7 +516,8 @@ namespace equalizerapo_and_zune
             UpdateListenerDescription(true);
             System.Threading.Thread.Sleep(2000);
             messenger.Send(messageParser.CreateMessage(
-                MessageParser.MESSAGE_TYPE.TRACK_CHANGED));
+                MessageParser.MESSAGE_TYPE.TRACK_CHANGED),
+                true);
         }
 
         private void DisconnectedSocket(object sender)

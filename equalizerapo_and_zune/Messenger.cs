@@ -91,11 +91,11 @@ namespace equalizerapo_and_zune
             return false;
         }
 
-        public void Send(string message)
+        public void Send(string message, bool important)
         {
             if (conAPI.IsConnected())
             {
-                conAPI.Send(message);
+                conAPI.Send(message, important);
             }
         }
 

@@ -23,6 +23,9 @@ namespace equalizerapo_and_zune
         // measured in seconds
         public const int KEEP_ALIVE_TIMOUT = 1;
         public const int LISTEN_MESSAGE_TIMEOUT = 1;
+        public const double SHORT_MESSAGE_TIMEOUT = 0.05;
+        // indicates that a message was blocked for being a non-important message
+        public const string MESSAGE_BLOCKED = "message blocked";
 
         #endregion
 
@@ -33,8 +36,10 @@ namespace equalizerapo_and_zune
         private SocketClient ListeningSocket;
         private Queue<string> MessageQueue;
         private static System.Timers.Timer MessageListenerTimer;
+        private static System.Timers.Timer ShortMessageListenerTimer;
         private static System.Timers.Timer KeepAliveTimer;
         private Thread ListenerThread;
+        private long LastSendTime;
 
         #endregion
 
@@ -156,7 +161,7 @@ namespace equalizerapo_and_zune
             }
         }
 
-        public string Send(string data)
+        public string Send(string data, bool important)
         {
             // check preconditions
             if (CurrentSocketClient == null)
@@ -165,8 +170,16 @@ namespace equalizerapo_and_zune
                 throw new InvalidOperationException("no connection established to SocketClient");
             }
 
+            // check that there is room for a non-important message
+            if (!important &&
+                (DateTime.Now.Ticks - LastSendTime < SHORT_MESSAGE_TIMEOUT * 1000))
+            {
+                return MESSAGE_BLOCKED;
+            }
+
             // try to send, get success status
             string success = CurrentSocketClient.Send(data);
+            LastSendTime = DateTime.Now.Ticks;
 
             // message sending was NOT successful?
             if (success != SocketClient.SUCCESS)
@@ -214,6 +227,16 @@ namespace equalizerapo_and_zune
             MessageListenerTimer.Elapsed +=
                 new System.Timers.ElapsedEventHandler(GetMessage);
             MessageListenerTimer.Start();
+
+            // start the listener
+            if (ShortMessageListenerTimer != null)
+            {
+                Connection.KillTimer(ShortMessageListenerTimer, "ShortMessageListenerTimer");
+            }
+            int shortListenMessageTimout = Convert.ToInt32(Connection.SHORT_MESSAGE_TIMEOUT * 1000);
+            ShortMessageListenerTimer = new System.Timers.Timer(shortListenMessageTimout);
+            ShortMessageListenerTimer.Elapsed +=
+                new System.Timers.ElapsedEventHandler(GetMessage);
 
             // start the keep-alive checks
             if (KeepAliveTimer != null)
@@ -281,6 +304,11 @@ namespace equalizerapo_and_zune
             {
                 Connection.KillTimer(MessageListenerTimer, "MessageListenerTimer");
                 MessageListenerTimer = null;
+            }
+            if (ShortMessageListenerTimer != null)
+            {
+                Connection.KillTimer(ShortMessageListenerTimer, "ShortMessageListenerTimer");
+                ShortMessageListenerTimer = null;
             }
             if (KeepAliveTimer != null)
             {
@@ -366,6 +394,8 @@ namespace equalizerapo_and_zune
             // get the message
             if (MessageQueue.Count == 0)
             {
+                // no more messages, stop listening so quickly
+                ShortMessageListenerTimer.Stop();
                 return;
             }
             string message = MessageQueue.Dequeue();
@@ -389,12 +419,14 @@ namespace equalizerapo_and_zune
                 {
                     MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
                 }
+                // start listening for messages more often
+                ShortMessageListenerTimer.Start();
             }
         }
         
         private void KeepAliveChecker(object sender, System.Timers.ElapsedEventArgs args)
         {
-            Send(SocketClient.KEEP_ALIVE);
+            Send(SocketClient.KEEP_ALIVE, false);
         }
 
         private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs args)
