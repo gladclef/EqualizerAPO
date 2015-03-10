@@ -91,6 +91,11 @@ namespace equalizerapo_and_zune
             return false;
         }
 
+        public void Send(string message)
+        {
+            conAPI.Send(message);
+        }
+
         #endregion
 
         #region private methods

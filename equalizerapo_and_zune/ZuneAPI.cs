@@ -125,6 +125,24 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        public string GetTrackArtist()
+        {
+            if (CurrentTrack == null)
+            {
+                return "";
+            }
+            return CurrentTrack.Artist;
+        }
+
+        public string GetTrackName()
+        {
+            if (CurrentTrack == null)
+            {
+                return "";
+            }
+            return CurrentTrack.Title;
+        }
+
         #endregion
 
         #region event handlers

@@ -29,6 +29,7 @@ namespace equalizerapo_and_zune
         private LinkedList<NumericUpDown> NumberInputs;
         private Messenger messenger;
         private bool doHandleNumericValueChanged = true;
+        private MessageParser messageParser;
 
         #endregion
 
@@ -59,6 +60,9 @@ namespace equalizerapo_and_zune
             zuneAPI.TrackChanged += new EventHandler(TrackChanged);
             eqAPI.EqualizerChanged += new EventHandler(EqualizerChanged);
             zuneAPI.Init();
+
+            // get a message parser
+            messageParser = new MessageParser(eqAPI, zuneAPI);
 
             // start a messenger to communicate with app
             messenger = new Messenger(
@@ -507,6 +511,9 @@ namespace equalizerapo_and_zune
         private void ConnectedSocket(object sender)
         {
             UpdateListenerDescription(true);
+            System.Threading.Thread.Sleep(2000);
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.TRACK_CHANGED));
         }
 
         private void DisconnectedSocket(object sender)
