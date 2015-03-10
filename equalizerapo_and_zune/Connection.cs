@@ -161,6 +161,7 @@ namespace equalizerapo_and_zune
             // check preconditions
             if (CurrentSocketClient == null)
             {
+                return SocketClient.DISCONNECTED;
                 throw new InvalidOperationException("no connection established to SocketClient");
             }
 

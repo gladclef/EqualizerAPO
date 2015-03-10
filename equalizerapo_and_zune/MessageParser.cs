@@ -79,7 +79,6 @@ namespace equalizerapo_and_zune
                     foreach (KeyValuePair<double,Filter> pair in eqAPI.GetFilters())
                     {
                         Filter filter = pair.Value;
-                        sb.Append(filter.Gain.ToString());
                         if (first)
                         {
                             first = false;
@@ -88,6 +87,7 @@ namespace equalizerapo_and_zune
                         {
                             sb.Append(",");
                         }
+                        sb.Append(filter.Gain.ToString());
                     }
                     break;
                 case MESSAGE_TYPE.PAUSE:
