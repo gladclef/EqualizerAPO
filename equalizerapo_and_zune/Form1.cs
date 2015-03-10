@@ -38,6 +38,20 @@ namespace equalizerapo_and_zune
         {
             InitializeComponent();
 
+            // set the min/max volumes, because apparently that doesn't work from the form editor
+            this.trackbar_volume.Maximum = equalizerapo_api.PREAMP_MAX;
+            this.trackbar_volume.Minimum = -equalizerapo_api.PREAMP_MAX;
+            this.numeric_volume.Maximum = new decimal(new int[] {
+                equalizerapo_api.PREAMP_MAX,
+                0,
+                0,
+                0});
+            this.numeric_volume.Minimum = new decimal(new int[] {
+                -equalizerapo_api.PREAMP_MAX,
+                0,
+                0,
+                -2147483648});
+
             // initialize zune and equalizer api instances
             NumberInputs = new LinkedList<NumericUpDown>();
             zuneAPI = new ZuneAPI();
@@ -431,6 +445,20 @@ namespace equalizerapo_and_zune
                 messenger.ChangeListeningAddress(
                     combobox_listening_port.SelectedValue.ToString());
                 UpdateListenerDescription();
+            }
+        }
+
+        private void button_play_pause_Click(object sender, EventArgs e)
+        {
+            if (button_play_pause.Text == "Pause")
+            {
+                zuneAPI.PauseTrack();
+                button_play_pause.Text = "Play";
+            }
+            else
+            {
+                zuneAPI.PlayTrack();
+                button_play_pause.Text = "Pause";
             }
         }
 

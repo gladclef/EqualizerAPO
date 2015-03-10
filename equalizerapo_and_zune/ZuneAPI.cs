@@ -81,6 +81,28 @@ namespace equalizerapo_and_zune
             }
         }
 
+        public void PlayTrack()
+        {
+            Application.DeferredInvoke(
+                new DeferredInvokeHandler(delegate(object sender)
+                {
+                    if (TransportControls.Instance.Play.Available)
+                        TransportControls.Instance.Play.Invoke(InvokePolicy.AsynchronousNormal);
+                }),
+                DeferredInvokePriority.Normal);
+        }
+
+        public void PauseTrack()
+        {
+            Application.DeferredInvoke(
+                new DeferredInvokeHandler(delegate(object sender)
+                {
+                    if (TransportControls.Instance.Pause.Available)
+                        TransportControls.Instance.Pause.Invoke(InvokePolicy.AsynchronousNormal);
+                }),
+                DeferredInvokePriority.Normal);
+        }
+
         public void ToNextTrack()
         {
             Application.DeferredInvoke(

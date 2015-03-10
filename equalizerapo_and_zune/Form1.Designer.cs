@@ -44,6 +44,7 @@
             this.trackbar_volume = new System.Windows.Forms.TrackBar();
             this.numeric_volume = new System.Windows.Forms.NumericUpDown();
             this.combobox_listening_port = new System.Windows.Forms.ComboBox();
+            this.button_play_pause = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.chart_filters)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackbar_volume)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numeric_volume)).BeginInit();
@@ -91,7 +92,7 @@
             // 
             // button_previous
             // 
-            this.button_previous.Location = new System.Drawing.Point(394, 300);
+            this.button_previous.Location = new System.Drawing.Point(313, 300);
             this.button_previous.Name = "button_previous";
             this.button_previous.Size = new System.Drawing.Size(75, 23);
             this.button_previous.TabIndex = 5;
@@ -131,7 +132,7 @@
             this.checkbox_apply_equalizer.AutoSize = true;
             this.checkbox_apply_equalizer.Checked = true;
             this.checkbox_apply_equalizer.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(191, 302);
+            this.checkbox_apply_equalizer.Location = new System.Drawing.Point(158, 302);
             this.checkbox_apply_equalizer.Name = "checkbox_apply_equalizer";
             this.checkbox_apply_equalizer.Size = new System.Drawing.Size(128, 21);
             this.checkbox_apply_equalizer.TabIndex = 7;
@@ -171,26 +172,26 @@
             // trackbar_volume
             // 
             this.trackbar_volume.Location = new System.Drawing.Point(68, 29);
-            this.trackbar_volume.Maximum = equalizerapo_api.PREAMP_MAX;
-            this.trackbar_volume.Minimum = -equalizerapo_api.PREAMP_MAX;
+            this.trackbar_volume.Maximum = 30;
+            this.trackbar_volume.Minimum = 30;
             this.trackbar_volume.Name = "trackbar_volume";
             this.trackbar_volume.Size = new System.Drawing.Size(307, 56);
             this.trackbar_volume.SmallChange = 5;
             this.trackbar_volume.TabIndex = 11;
             this.trackbar_volume.TickFrequency = 5;
-            this.trackbar_volume.Value = 0;
+            this.trackbar_volume.Value = 30;
             this.trackbar_volume.ValueChanged += new System.EventHandler(this.trackbar_volume_ValueChanged);
             // 
             // numeric_volume
             // 
             this.numeric_volume.Location = new System.Drawing.Point(15, 31);
             this.numeric_volume.Maximum = new decimal(new int[] {
-            equalizerapo_api.PREAMP_MAX,
+            30,
             0,
             0,
             0});
             this.numeric_volume.Minimum = new decimal(new int[] {
-            -equalizerapo_api.PREAMP_MAX,
+            30,
             0,
             0,
             -2147483648});
@@ -206,13 +207,23 @@
             this.combobox_listening_port.Name = "combobox_listening_port";
             this.combobox_listening_port.Size = new System.Drawing.Size(107, 24);
             this.combobox_listening_port.TabIndex = 13;
-            this.combobox_listening_port.SelectedValueChanged += combobox_listening_port_SelectedValueChanged;
+            // 
+            // button_play_pause
+            // 
+            this.button_play_pause.Location = new System.Drawing.Point(394, 300);
+            this.button_play_pause.Name = "button_play_pause";
+            this.button_play_pause.Size = new System.Drawing.Size(75, 23);
+            this.button_play_pause.TabIndex = 14;
+            this.button_play_pause.Text = "Play";
+            this.button_play_pause.UseVisualStyleBackColor = true;
+            this.button_play_pause.Click += new System.EventHandler(this.button_play_pause_Click);
             // 
             // form_main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(559, 332);
+            this.Controls.Add(this.button_play_pause);
             this.Controls.Add(this.combobox_listening_port);
             this.Controls.Add(this.numeric_volume);
             this.Controls.Add(this.textblock_listening_port);
@@ -251,6 +262,7 @@
         private System.Windows.Forms.TrackBar trackbar_volume;
         private System.Windows.Forms.NumericUpDown numeric_volume;
         private System.Windows.Forms.ComboBox combobox_listening_port;
+        private System.Windows.Forms.Button button_play_pause;
     }
 }
 
