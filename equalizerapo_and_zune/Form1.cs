@@ -416,6 +416,9 @@ namespace equalizerapo_and_zune
             else
             {
                 eqAPI.ChangePreamp(trackbar_volume.Value);
+                messenger.Send(
+                    messageParser.CreateMessage(MessageParser.MESSAGE_TYPE.VOLUME_CHANGED),
+                    false);
             }
         }
 
@@ -430,6 +433,9 @@ namespace equalizerapo_and_zune
             else
             {
                 eqAPI.ChangePreamp(trackbar_volume.Value);
+                messenger.Send(
+                    messageParser.CreateMessage(MessageParser.MESSAGE_TYPE.VOLUME_CHANGED),
+                    false);
             }
         }
 

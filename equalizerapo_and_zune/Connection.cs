@@ -22,8 +22,8 @@ namespace equalizerapo_and_zune
         public const int QOTD_PORT = 17;
         // measured in seconds
         public const int KEEP_ALIVE_TIMOUT = 1;
-        public const double LISTEN_MESSAGE_TIMEOUT = 0.5;
-        public const double SHORT_MESSAGE_TIMEOUT = 0.05;
+        public const double LISTEN_MESSAGE_TIMEOUT = 0.05;
+        public const double SHORT_MESSAGE_TIMEOUT = 0.01;
         // indicates that a message was blocked for being a non-important message
         public const string MESSAGE_BLOCKED = "message blocked";
 
@@ -171,14 +171,16 @@ namespace equalizerapo_and_zune
             }
 
             // check that there is room for a non-important message
+            System.Diagnostics.Debugger.Log(1, "", "trying to send: " + data + "\n");
             if (!important &&
-                (DateTime.Now.Ticks - LastSendTime < SHORT_MESSAGE_TIMEOUT * 1000))
+                (DateTime.Now.Ticks - LastSendTime < SHORT_MESSAGE_TIMEOUT * 1000 * 10000 * 2))
             {
+                System.Diagnostics.Debugger.Log(1, "", "message blocked\n");
                 return MESSAGE_BLOCKED;
             }
 
             // try to send, get success status
-            string success = CurrentSocketClient.Send(data);
+            string success = CurrentSocketClient.Send("%" + data);
             LastSendTime = DateTime.Now.Ticks;
 
             // message sending was NOT successful?
@@ -460,15 +462,25 @@ namespace equalizerapo_and_zune
                 message = args.SocketError.ToString();
             }
 
-            // determine if this message is either a disconnect or worthy message
-            if (message == SocketClient.CONNECTION_ABORTED ||
-                message == SocketClient.CONNECTION_RESET)
+            // parse messages
+            string[] messages = message.Split(new char[] { '%' });
+
+            foreach (string m in messages)
             {
-                DeferredDisconnected();
-            }
-            else if (message.Length > 0)
-            {
-                MessageQueue.Enqueue(message);
+                // determine if this message is either a disconnect or worthy message
+                if (m.Length == 0)
+                {
+                    continue;
+                }
+                else if (m == SocketClient.CONNECTION_ABORTED ||
+                    m == SocketClient.CONNECTION_RESET)
+                {
+                    DeferredDisconnected();
+                }
+                else
+                {
+                    MessageQueue.Enqueue(m);
+                }
             }
         }
 
