@@ -13,7 +13,8 @@ namespace equalizerapo_and_zune
         public enum MESSAGE_TYPE
         {
             TRACK_CHANGED, FILTERS_GAIN, FILTER_REMOVED,
-            FILTER_ADDED, PLAY, PAUSE, VOLUME_CHANGED
+            FILTER_ADDED, PLAY, PAUSE, VOLUME_CHANGED,
+            FILTER_APPLY
         };
         private equalizerapo_api eqAPI;
         private ZuneAPI zuneAPI;
@@ -65,6 +66,10 @@ namespace equalizerapo_and_zune
 
             switch (type)
             {
+                case MESSAGE_TYPE.FILTER_APPLY:
+                    sb.Append("apply_filter:");
+                    sb.Append(eqAPI.IsEqualizerApplied() ? "true" : "false");
+                    break;
                 case MESSAGE_TYPE.FILTER_REMOVED:
                     sb.Append("filter:removed");
                     break;
@@ -105,6 +110,8 @@ namespace equalizerapo_and_zune
                     sb.Append(zuneAPI.CurrentTrack.Artist);
                     sb.Append(";trackname:");
                     sb.Append(zuneAPI.CurrentTrack.Title);
+                    sb.Append(";");
+                    sb.Append(zuneAPI.IsPlaying() ? CreateMessage(MESSAGE_TYPE.PLAY) : CreateMessage(MESSAGE_TYPE.PAUSE));
                     sb.Append(";");
                     sb.Append(CreateMessage(MESSAGE_TYPE.VOLUME_CHANGED));
                     sb.Append(";");

@@ -165,6 +165,11 @@ namespace equalizerapo_and_zune
             return CurrentFile.PreAmp;
         }
 
+        public bool IsEqualizerApplied()
+        {
+            return applyEqualizer;
+        }
+
         #endregion
 
         #region private methods

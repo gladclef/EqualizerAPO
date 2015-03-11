@@ -35,6 +35,13 @@ namespace equalizerapo_and_zune
 
         #endregion
 
+        #region event handlers
+
+        public EventHandler TrackChanged { get; set; }
+        public EventHandler PlaybackChanged { get; set; }
+
+        #endregion
+
         #region public methods
 
         public ZuneAPI()
@@ -143,11 +150,10 @@ namespace equalizerapo_and_zune
             return CurrentTrack.Title;
         }
 
-        #endregion
-
-        #region event handlers
-
-        public EventHandler TrackChanged;
+        public bool IsPlaying()
+        {
+            return TransportControls.Instance.Playing;
+        }
 
         #endregion
 
@@ -187,6 +193,13 @@ namespace equalizerapo_and_zune
                         CurrentTrack = new Track();
                     }
                     TrackChanged(this, EventArgs.Empty);
+                }
+            }
+            else if (e.PropertyName.Equals("Playing"))
+            {
+                if (PlaybackChanged != null)
+                {
+                    PlaybackChanged(this, EventArgs.Empty);
                 }
             }
         }

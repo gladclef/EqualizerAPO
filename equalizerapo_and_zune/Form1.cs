@@ -30,16 +30,44 @@ namespace equalizerapo_and_zune
         private Messenger messenger;
         private bool doHandleNumericValueChanged = true;
         private MessageParser messageParser;
+        private Dictionary<string, bool> updateMessagesEnabled;
+        private Track cachedTrack;
+        private bool cachedPlayback;
 
         #endregion
 
-        #region public methods
+        #region public/initizer methods
 
         public form_main()
         {
             InitializeComponent();
 
+            // initialize some other objects
+            NumberInputs = new LinkedList<NumericUpDown>();
+
             // set the min/max volumes, because apparently that doesn't work from the form editor
+            InitMinMax();
+
+            // set all the enablers to false
+            InitEnablers();
+
+            // initialize zune and equalizer api instances
+            InitEqAndZune();
+
+            // get a message parser
+            messageParser = new MessageParser(eqAPI, zuneAPI);
+
+            // start a messenger to communicate with app
+            messenger = new Messenger(
+                new Messenger.DeferredInvokeDelegate(ConnectedSocket),
+                new Messenger.DeferredInvokeDelegate(DisconnectedSocket));
+
+            // tell the user that we're listening, and on what port
+            UpdateListenerDescription(false);
+        }
+
+        private void InitMinMax()
+        {
             this.trackbar_volume.Maximum = equalizerapo_api.PREAMP_MAX;
             this.trackbar_volume.Minimum = -equalizerapo_api.PREAMP_MAX;
             this.numeric_volume.Maximum = new decimal(new int[] {
@@ -52,25 +80,30 @@ namespace equalizerapo_and_zune
                 0,
                 0,
                 -2147483648});
+        }
 
-            // initialize zune and equalizer api instances
-            NumberInputs = new LinkedList<NumericUpDown>();
+        private void InitEqAndZune()
+        {
+            // create objects
             zuneAPI = new ZuneAPI();
             eqAPI = new equalizerapo_api();
+
+            // zune events
             zuneAPI.TrackChanged += new EventHandler(TrackChanged);
+            zuneAPI.PlaybackChanged += new EventHandler(PlaybackChanged);
+
+            // equalizer events
             eqAPI.EqualizerChanged += new EventHandler(EqualizerChanged);
+
+            // init objects
             zuneAPI.Init();
+        }
 
-            // get a message parser
-            messageParser = new MessageParser(eqAPI, zuneAPI);
-
-            // start a messenger to communicate with app
-            messenger = new Messenger(
-                new Messenger.DeferredInvokeDelegate(ConnectedSocket),
-                new Messenger.DeferredInvokeDelegate(DisconnectedSocket));
-
-            // tell the user that we're listening, and on what port
-            UpdateListenerDescription(false);
+        private void InitEnablers()
+        {
+            updateMessagesEnabled = new Dictionary<string, bool>();
+            updateMessagesEnabled.Add("track", false);
+            updateMessagesEnabled.Add("playback", false);
         }
 
         ~form_main()
@@ -104,10 +137,31 @@ namespace equalizerapo_and_zune
 
         private void TrackChanged(object sender, EventArgs e)
         {
+            if (cachedTrack != zuneAPI.CurrentTrack)
+            {
+                cachedTrack = zuneAPI.CurrentTrack;
+                updateMessagesEnabled["track"] = true;
+            }
             DeferredUpdateAll(sender);
-            messenger.Send(messageParser.CreateMessage(
-                MessageParser.MESSAGE_TYPE.TRACK_CHANGED),
-                true);
+        }
+
+        private void PlaybackChanged(object sender, EventArgs e)
+        {
+            if (cachedPlayback != zuneAPI.IsPlaying())
+            {
+                cachedPlayback = zuneAPI.IsPlaying();
+                updateMessagesEnabled["playback"] = true;
+            }
+            DeferredUpdateAll(sender);
+            if (updateMessagesEnabled["playback"])
+            {
+                updateMessagesEnabled["playback"] = false;
+                messenger.Send(messageParser.CreateMessage(
+                    zuneAPI.IsPlaying()
+                        ? MessageParser.MESSAGE_TYPE.PLAY
+                        : MessageParser.MESSAGE_TYPE.PAUSE),
+                    true);
+            }
         }
 
         private void EqualizerChanged(object sender, EventArgs e)
@@ -129,9 +183,20 @@ namespace equalizerapo_and_zune
                 return;
             }
 
+            // change the track
             eqAPI.UpdateTrack(zuneAPI.CurrentTrack);
+            if (updateMessagesEnabled["track"])
+            {
+                updateMessagesEnabled["track"] = false;
+                messenger.Send(messageParser.CreateMessage(
+                    MessageParser.MESSAGE_TYPE.TRACK_CHANGED),
+                    true);
+            }
+            
+            // update UI
             UpdateTrackTitle(zuneAPI.CurrentTrack.GetFullName());
             UpdateEqualizer(sender);
+            UpdatePlaybackButton();
 
             UpdatePreamp();
         }
@@ -252,6 +317,27 @@ namespace equalizerapo_and_zune
             doHandleNumericValueChanged = true;
         }
 
+        private void UpdatePlaybackButton()
+        {
+            if (button_play_pause.InvokeRequired)
+            {
+                // thread-safe callback
+                DeferredEmptyCallback d = new DeferredEmptyCallback(UpdatePlaybackButton);
+                this.Invoke(d, new object[] { });
+            }
+            else
+            {
+                if (zuneAPI.IsPlaying())
+                {
+                    button_play_pause.Text = "Pause";
+                }
+                else
+                {
+                    button_play_pause.Text = "Play";
+                }
+            }
+        }
+
         private void number_inputs_ValueChanged(object sender, EventArgs e)
         {
             if (!doHandleNumericValueChanged)
@@ -267,17 +353,22 @@ namespace equalizerapo_and_zune
                 if (numeric.Value != Convert.ToInt32(filter.Gain))
                 {
                     eqAPI.GetFilter(i).Gain = Convert.ToDouble(numeric.Value);
+                    messenger.Send(messageParser.CreateMessage(
+                        MessageParser.MESSAGE_TYPE.FILTERS_GAIN),
+                        true);
                 }
             }
         }
 
         private void button_next_Click(object sender, EventArgs e)
         {
+            updateMessagesEnabled["track"] = true;
             zuneAPI.ToNextTrack();
         }
 
         private void button_previous_Click(object sender, EventArgs e)
         {
+            updateMessagesEnabled["track"] = true;
             zuneAPI.ToPreviousTrack();
         }
 
@@ -294,6 +385,9 @@ namespace equalizerapo_and_zune
         private void chart_filters_MouseUp(object sender, MouseEventArgs e)
         {
             mousePressed = false;
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.FILTERS_GAIN),
+                true);
         }
 
         private void chart_filters_Click(object sender, MouseEventArgs e)
@@ -359,6 +453,9 @@ namespace equalizerapo_and_zune
             if (filter != null)
             {
                 filter.Gain = gain;
+                messenger.Send(messageParser.CreateMessage(
+                    MessageParser.MESSAGE_TYPE.FILTERS_GAIN),
+                    false);
             }
         }
 
@@ -372,22 +469,34 @@ namespace equalizerapo_and_zune
             else
             {
                 eqAPI.ApplyEqualizer(checkbox_apply_equalizer.Checked);
+                messenger.Send(messageParser.CreateMessage(
+                    MessageParser.MESSAGE_TYPE.FILTER_APPLY),
+                    true);
             }
         }
 
         private void link_zero_equalizer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             eqAPI.ZeroOutEqualizer();
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.FILTERS_GAIN),
+                true);
         }
 
         private void button_remove_filter_Click(object sender, EventArgs e)
         {
             eqAPI.RemoveFilter();
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.FILTER_REMOVED),
+                true);
         }
 
         private void button_add_filter_Click(object sender, EventArgs e)
         {
             eqAPI.AddFilter();
+            messenger.Send(messageParser.CreateMessage(
+                MessageParser.MESSAGE_TYPE.FILTER_ADDED),
+                true);
         }
 
         private void UpdatePreamp()
@@ -435,7 +544,7 @@ namespace equalizerapo_and_zune
                 eqAPI.ChangePreamp(trackbar_volume.Value);
                 messenger.Send(
                     messageParser.CreateMessage(MessageParser.MESSAGE_TYPE.VOLUME_CHANGED),
-                    false);
+                    true);
             }
         }
 
@@ -463,15 +572,14 @@ namespace equalizerapo_and_zune
 
         private void button_play_pause_Click(object sender, EventArgs e)
         {
-            if (button_play_pause.Text == "Pause")
+            updateMessagesEnabled["playback"] = true;
+            if (zuneAPI.IsPlaying())
             {
                 zuneAPI.PauseTrack();
-                button_play_pause.Text = "Play";
             }
             else
             {
                 zuneAPI.PlayTrack();
-                button_play_pause.Text = "Pause";
             }
         }
 

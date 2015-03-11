@@ -171,11 +171,9 @@ namespace equalizerapo_and_zune
             }
 
             // check that there is room for a non-important message
-            System.Diagnostics.Debugger.Log(1, "", "trying to send: " + data + "\n");
             if (!important &&
                 (DateTime.Now.Ticks - LastSendTime < SHORT_MESSAGE_TIMEOUT * 1000 * 10000 * 2))
             {
-                System.Diagnostics.Debugger.Log(1, "", "message blocked\n");
                 return MESSAGE_BLOCKED;
             }
 
