@@ -48,10 +48,18 @@ namespace equalizerapo_and_zune
 
         public void Close()
         {
+            CloseAllConnections();
+        }
+
+        private void CloseAllConnections()
+        {
             conAPI.Close();
-            foreach (Connection connection in allConnections) {
+            conAPI = null;
+            foreach (Connection connection in allConnections)
+            {
                 connection.Close();
             }
+            allConnections.Clear();
         }
 
         public void MessageReceived(object sender, EventArgs e) {
@@ -67,7 +75,7 @@ namespace equalizerapo_and_zune
 
         public void DeferredDisconnectedSocket(object sender, EventArgs e)
         {
-            conAPI.Close();
+            CloseAllConnections();
             InitConAPI();
             if (DisconnectedSocketCall != null)
             {

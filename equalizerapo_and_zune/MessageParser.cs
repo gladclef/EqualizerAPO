@@ -33,6 +33,10 @@ namespace equalizerapo_and_zune
         {
             // get the message parts
             string[] messageParts = message.Split(new char[] { ':' }, 2);
+            if (messageParts.Length < 2)
+            {
+                return;
+            }
             string messageType = messageParts[0];
             string restOfMessage = messageParts[1];
 

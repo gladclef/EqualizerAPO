@@ -58,10 +58,7 @@ namespace equalizerapo_and_zune
             messageParser = new MessageParser(eqAPI, zuneAPI);
 
             // start a messenger to communicate with app
-            messenger = new Messenger(
-                new Messenger.DeferredInvokeDelegate(ConnectedSocket),
-                new Messenger.DeferredInvokeDelegate(DisconnectedSocket),
-                new Messenger.DeferredInvokeMessageDelegate(MessageReceieved));
+            InitMessenger();
 
             // tell the user that we're listening, and on what port
             UpdateListenerDescription(false);
@@ -105,6 +102,14 @@ namespace equalizerapo_and_zune
             updateMessagesEnabled = new Dictionary<string, bool>();
             updateMessagesEnabled.Add("track", false);
             updateMessagesEnabled.Add("playback", false);
+        }
+
+        private void InitMessenger()
+        {
+            messenger = new Messenger(
+                new Messenger.DeferredInvokeDelegate(ConnectedSocket),
+                new Messenger.DeferredInvokeDelegate(DisconnectedSocket),
+                new Messenger.DeferredInvokeMessageDelegate(MessageReceieved));
         }
 
         ~form_main()

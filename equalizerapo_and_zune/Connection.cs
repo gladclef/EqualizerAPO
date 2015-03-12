@@ -80,19 +80,7 @@ namespace equalizerapo_and_zune
 
         public void Close()
         {
-            // stop timers
-            if (ShortMessageListenerTimer != null)
-            {
-                ShortMessageListenerTimer.Close();
-                ShortMessageListenerTimer = null;
-            }
-            if (MessageListenerTimer != null)
-            {
-                MessageListenerTimer.Close();
-                MessageListenerTimer = null;
-            }
-
-            // release connections
+            // release connections and stop timers
             EndConnection();
 
             // release other objects
@@ -371,7 +359,7 @@ namespace equalizerapo_and_zune
 
         private void Disconnected(object sender)
         {
-            EndConnection();
+            Close();
             if (DisconnectedEvent != null)
             {
                 DisconnectedEvent(this, EventArgs.Empty);
@@ -421,20 +409,34 @@ namespace equalizerapo_and_zune
         private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
         {
             // get the message from the message queue
-            reset_MessageQueue.WaitOne(100);
-            if (MessageQueue == null)
+            string message = "";
+            try
             {
-                DeferredDisconnected();
-                return;
+                reset_MessageQueue.WaitOne(100);
+                // release the short listener timer if there aren't any more messages to be processed
+                if (MessageQueue.Count == 0)
+                {
+                    // no more messages, stop listening so quickly
+                    ShortMessageListenerTimer.Stop();
+                    return;
+                }
+                message = MessageQueue.Dequeue();
+                reset_MessageQueue.Set();
             }
-            if (MessageQueue.Count == 0)
+            catch (Exception e)
             {
-                // no more messages, stop listening so quickly
-                ShortMessageListenerTimer.Stop();
-                return;
+                // catch thread-syncronization related errors
+                if (!(e is NullReferenceException) &&
+                    !(e is ObjectDisposedException))
+                {
+                    throw;
+                }
+                else
+                {
+                    DeferredDisconnected();
+                    return;
+                }
             }
-            string message = MessageQueue.Dequeue();
-            reset_MessageQueue.Set();
 
             // parse the message
             if (message == SocketClient.KEEP_ALIVE)
@@ -456,7 +458,19 @@ namespace equalizerapo_and_zune
                     MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
                 }
                 // start listening for messages more often
-                ShortMessageListenerTimer.Start();
+                try
+                {
+                    ShortMessageListenerTimer.Start();
+                }
+                catch (Exception e)
+                {
+                    // catch thread-syncronization related errors
+                    if (!(e is NullReferenceException) &&
+                        !(e is ObjectDisposedException))
+                    {
+                        throw;
+                    }
+                }
             }
         }
         
@@ -467,19 +481,24 @@ namespace equalizerapo_and_zune
 
         private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs args)
         {
-            // prepare for another message to be recieved
-            if (CurrentSocketClient != null)
+            // check for null values
+            if (CurrentSocketClient == null ||
+                reset_MessageQueue == null ||
+                MessageQueue == null)
             {
-                try
-                {
-                    CurrentSocketClient.HandleIncomingMessages(
-                        new SocketClient.SocketCallbackDelegate(SocketCallback));
-                }
-                catch (ObjectDisposedException)
-                {
-                    System.Diagnostics.Debugger.Log(1, "", "** error: can't recieve any more messages\n");
-                    // do something here?
-                }
+                return;
+            }
+
+            // prepare for another message to be recieved
+            try
+            {
+                CurrentSocketClient.HandleIncomingMessages(
+                    new SocketClient.SocketCallbackDelegate(SocketCallback));
+            }
+            catch (ObjectDisposedException)
+            {
+                System.Diagnostics.Debugger.Log(1, "", "** error: can't recieve any more messages\n");
+                // do something here?
             }
 
             // retrieve and parse the message
@@ -512,9 +531,21 @@ namespace equalizerapo_and_zune
                 }
                 else
                 {
-                    reset_MessageQueue.WaitOne(100);
-                    MessageQueue.Enqueue(m);
-                    reset_MessageQueue.Set();
+                    try
+                    {
+                        reset_MessageQueue.WaitOne(100);
+                        MessageQueue.Enqueue(m);
+                        reset_MessageQueue.Set();
+                    }
+                    catch (Exception e)
+                    {
+                        // catch thread-syncronization related errors
+                        if (!(e is NullReferenceException) &&
+                            !(e is ObjectDisposedException))
+                        {
+                            throw;
+                        }
+                    }
                 }
             }
         }
