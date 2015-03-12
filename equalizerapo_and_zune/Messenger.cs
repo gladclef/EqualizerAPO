@@ -57,8 +57,8 @@ namespace equalizerapo_and_zune
         public void MessageReceived(object sender, EventArgs e) {
             Connection.MessageReceivedEventArgs cea =
                 (Connection.MessageReceivedEventArgs)e;
-            System.Diagnostics.Debugger.Log(1, "", "<< " + cea.message + "\n");
-            if (MessageReceivedCall != null)
+            if (MessageReceivedCall != null &&
+                cea.message != null)
             {
                 MessageReceivedCall(this,
                     new MessageEventArgs(cea.message));

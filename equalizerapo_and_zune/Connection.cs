@@ -386,8 +386,12 @@ namespace equalizerapo_and_zune
 
         private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
         {
-            System.Diagnostics.Debugger.Log(1, "", "!" + MessageQueue.Count + "\n");
             // get the message
+            if (MessageQueue == null)
+            {
+                DeferredDisconnected();
+                return;
+            }
             if (MessageQueue.Count == 0)
             {
                 // no more messages, stop listening so quickly
@@ -395,7 +399,6 @@ namespace equalizerapo_and_zune
                 return;
             }
             string message = MessageQueue.Dequeue();
-            System.Diagnostics.Debugger.Log(1, "", ".." + message + "\n");
 
             // parse the message
             if (message == SocketClient.KEEP_ALIVE)
@@ -411,7 +414,6 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                System.Diagnostics.Debugger.Log(1, "", "< " + message + "\n");
                 // fire message received event!
                 if (MessageRecievedEvent != null)
                 {
@@ -474,9 +476,7 @@ namespace equalizerapo_and_zune
                 }
                 else
                 {
-                    System.Diagnostics.Debugger.Log(1, "", "." + m + "\n");
                     MessageQueue.Enqueue(m);
-                    System.Diagnostics.Debugger.Log(1, "", "@" + MessageQueue.Count + "\n");
                 }
             }
         }
