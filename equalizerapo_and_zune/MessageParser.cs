@@ -44,14 +44,25 @@ namespace equalizerapo_and_zune
                 case "filters":
                     break;
                 case "playback":
+                    switch (restOfMessage)
+                    {
+                        case "pause":
+                            zuneAPI.PauseTrack();
+                            break;
+                        case "play":
+                            zuneAPI.PlayTrack();
+                            break;
+                        case "previous":
+                            zuneAPI.ToPreviousTrack();
+                            break;
+                        case "next":
+                            zuneAPI.ToNextTrack();
+                            break;
+                    }
                     break;
                 case "volume":
                     break;
                 case "track_changed":
-                    foreach (string nextMessage in restOfMessage.Split(new char[] { ';' }))
-                    {
-                        ParseMessage(nextMessage);
-                    }
                     break;
             }
         }

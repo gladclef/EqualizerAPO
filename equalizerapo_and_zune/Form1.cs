@@ -60,7 +60,8 @@ namespace equalizerapo_and_zune
             // start a messenger to communicate with app
             messenger = new Messenger(
                 new Messenger.DeferredInvokeDelegate(ConnectedSocket),
-                new Messenger.DeferredInvokeDelegate(DisconnectedSocket));
+                new Messenger.DeferredInvokeDelegate(DisconnectedSocket),
+                new Messenger.DeferredInvokeMessageDelegate(MessageReceieved));
 
             // tell the user that we're listening, and on what port
             UpdateListenerDescription(false);
@@ -632,6 +633,11 @@ namespace equalizerapo_and_zune
             messenger.Send(messageParser.CreateMessage(
                 MessageParser.MESSAGE_TYPE.TRACK_CHANGED),
                 true);
+        }
+
+        private void MessageReceieved(object sender, Messenger.MessageEventArgs args)
+        {
+            messageParser.ParseMessage(args.message);
         }
 
         private void DisconnectedSocket(object sender)

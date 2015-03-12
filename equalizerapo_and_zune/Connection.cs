@@ -31,13 +31,12 @@ namespace equalizerapo_and_zune
 
         #region fields
 
-        private static Connection Instance;
         private SocketClient CurrentSocketClient;
         private SocketClient ListeningSocket;
-        private Queue<string> MessageQueue;
-        private static System.Timers.Timer MessageListenerTimer;
-        private static System.Timers.Timer ShortMessageListenerTimer;
-        private static System.Timers.Timer KeepAliveTimer;
+        private static Queue<string> MessageQueue;
+        private System.Timers.Timer MessageListenerTimer;
+        private System.Timers.Timer ShortMessageListenerTimer;
+        private System.Timers.Timer KeepAliveTimer;
         private Thread ListenerThread;
         private long LastSendTime;
 
@@ -78,7 +77,7 @@ namespace equalizerapo_and_zune
         public void Close()
         {
             EndConnection();
-            Connection.Instance = null;
+            MessageQueue = null;
         }
 
         public string Connect(Socket socket)
@@ -256,15 +255,6 @@ namespace equalizerapo_and_zune
 
         #region public static methods
 
-        public static Connection GetInstance()
-        {
-            if (Instance == null)
-            {
-                Instance = new Connection();
-            }
-            return Instance;
-        }
-
         public static void KillTimer(System.Timers.Timer timer, string timerName)
         {
             try
@@ -292,7 +282,10 @@ namespace equalizerapo_and_zune
         private void Init()
         {
             ListeningAddress = Connection.ListeningAddresses().Last();
-            MessageQueue = new Queue<string>();
+            if (MessageQueue == null)
+            {
+                MessageQueue = new Queue<string>();
+            }
         }
 
         private void EndConnection()
@@ -393,6 +386,7 @@ namespace equalizerapo_and_zune
 
         private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
         {
+            System.Diagnostics.Debugger.Log(1, "", "!" + MessageQueue.Count + "\n");
             // get the message
             if (MessageQueue.Count == 0)
             {
@@ -401,6 +395,7 @@ namespace equalizerapo_and_zune
                 return;
             }
             string message = MessageQueue.Dequeue();
+            System.Diagnostics.Debugger.Log(1, "", ".." + message + "\n");
 
             // parse the message
             if (message == SocketClient.KEEP_ALIVE)
@@ -416,6 +411,7 @@ namespace equalizerapo_and_zune
             }
             else
             {
+                System.Diagnostics.Debugger.Log(1, "", "< " + message + "\n");
                 // fire message received event!
                 if (MessageRecievedEvent != null)
                 {
@@ -478,7 +474,9 @@ namespace equalizerapo_and_zune
                 }
                 else
                 {
+                    System.Diagnostics.Debugger.Log(1, "", "." + m + "\n");
                     MessageQueue.Enqueue(m);
+                    System.Diagnostics.Debugger.Log(1, "", "@" + MessageQueue.Count + "\n");
                 }
             }
         }

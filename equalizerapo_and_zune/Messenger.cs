@@ -20,16 +20,21 @@ namespace equalizerapo_and_zune
 
         public DeferredInvokeDelegate ConnectedSocketCall { get; set; }
         public DeferredInvokeDelegate DisconnectedSocketCall { get; set; }
+        public DeferredInvokeMessageDelegate MessageReceivedCall { get; set; }
 
         #endregion
 
         #region public methods
 
-        public Messenger(DeferredInvokeDelegate con, DeferredInvokeDelegate dis)
+        public Messenger(
+            DeferredInvokeDelegate connectedSocketCall,
+            DeferredInvokeDelegate disconnectedSocketCall,
+            DeferredInvokeMessageDelegate messageReceivedCall)
         {
             // set initial connection values
-            this.ConnectedSocketCall = con;
-            this.DisconnectedSocketCall = dis;
+            this.ConnectedSocketCall = connectedSocketCall;
+            this.DisconnectedSocketCall = disconnectedSocketCall;
+            this.MessageReceivedCall = messageReceivedCall;
             this.allConnections = new LinkedList<Connection>();
 
             // create a listening connection
@@ -53,6 +58,11 @@ namespace equalizerapo_and_zune
             Connection.MessageReceivedEventArgs cea =
                 (Connection.MessageReceivedEventArgs)e;
             System.Diagnostics.Debugger.Log(1, "", "<< " + cea.message + "\n");
+            if (MessageReceivedCall != null)
+            {
+                MessageReceivedCall(this,
+                    new MessageEventArgs(cea.message));
+            }
         }
 
         public void DeferredDisconnectedSocket(object sender, EventArgs e)
@@ -109,6 +119,7 @@ namespace equalizerapo_and_zune
 
         public void Send(string message, bool important)
         {
+            // broadcast to all
             if (conAPI.IsConnected())
             {
                 conAPI.Send(message, important);
@@ -140,7 +151,7 @@ namespace equalizerapo_and_zune
 
         private void InitConAPI()
         {
-            conAPI = Connection.GetInstance();
+            conAPI = new Connection();
             conAPI.ConnectedEvent += new EventHandler(ConnectedSocket);
             conAPI.DisconnectedEvent += new EventHandler(DeferredDisconnectedSocket);
             conAPI.MessageRecievedEvent += new EventHandler(MessageReceived);
@@ -152,6 +163,15 @@ namespace equalizerapo_and_zune
         #region delegates
 
         public delegate void DeferredInvokeDelegate(object sender);
+        public delegate void DeferredInvokeMessageDelegate(object sender, MessageEventArgs args);
+        public class MessageEventArgs : EventArgs
+        {
+            public string message { get; set; }
+            public MessageEventArgs(string m)
+            {
+                message = m;
+            }
+        }
 
         #endregion
     }
