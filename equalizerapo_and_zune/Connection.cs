@@ -443,6 +443,7 @@ namespace equalizerapo_and_zune
                 }
                 catch (ObjectDisposedException)
                 {
+                    System.Diagnostics.Debugger.Log(1, "", "** error: can't recieve any more messages\n");
                     // do something here?
                 }
             }

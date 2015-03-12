@@ -12,6 +12,7 @@ namespace equalizerapo_and_zune
         #region fields
 
         Connection conAPI;
+        LinkedList<Connection> allConnections;
 
         #endregion
 
@@ -29,14 +30,29 @@ namespace equalizerapo_and_zune
             // set initial connection values
             this.ConnectedSocketCall = con;
             this.DisconnectedSocketCall = dis;
+            this.allConnections = new LinkedList<Connection>();
 
             // create a listening connection
             InitConAPI();
         }
 
+        ~Messenger()
+        {
+            Close();
+        }
+
+        public void Close()
+        {
+            conAPI.Close();
+            foreach (Connection connection in allConnections) {
+                connection.Close();
+            }
+        }
+
         public void MessageReceived(object sender, EventArgs e) {
             Connection.MessageReceivedEventArgs cea =
                 (Connection.MessageReceivedEventArgs)e;
+            System.Diagnostics.Debugger.Log(1, "", "<< " + cea.message + "\n");
         }
 
         public void DeferredDisconnectedSocket(object sender, EventArgs e)
@@ -107,6 +123,15 @@ namespace equalizerapo_and_zune
         {
             SocketClient.ConnectedEventArgs cea =
                 (SocketClient.ConnectedEventArgs)e;
+
+            // set up the new connection to listen for message
+            Connection newConnection = new Connection();
+            newConnection.Connect(cea.newSocket);
+            newConnection.DisconnectedEvent += new EventHandler(DeferredDisconnectedSocket);
+            newConnection.MessageRecievedEvent += new EventHandler(MessageReceived);
+            allConnections.AddLast(newConnection);
+
+            // pass along the event
             if (ConnectedSocketCall != null)
             {
                 ConnectedSocketCall(this);
