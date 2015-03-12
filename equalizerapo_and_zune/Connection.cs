@@ -39,6 +39,10 @@ namespace equalizerapo_and_zune
         private System.Timers.Timer KeepAliveTimer;
         private Thread ListenerThread;
         private long LastSendTime;
+        /// <summary>
+        /// used to obtain exclusive access to the message queue
+        /// </summary>
+        private volatile static AutoResetEvent reset_MessageQueue;
 
         #endregion
 
@@ -76,8 +80,30 @@ namespace equalizerapo_and_zune
 
         public void Close()
         {
+            // stop timers
+            if (ShortMessageListenerTimer != null)
+            {
+                ShortMessageListenerTimer.Close();
+                ShortMessageListenerTimer = null;
+            }
+            if (MessageListenerTimer != null)
+            {
+                MessageListenerTimer.Close();
+                MessageListenerTimer = null;
+            }
+
+            // release connections
             EndConnection();
+
+            // release other objects
             MessageQueue = null;
+
+            // free AutoResetEvents
+            if (reset_MessageQueue != null)
+            {
+                reset_MessageQueue.Close();
+                reset_MessageQueue = null;
+            }
         }
 
         public string Connect(Socket socket)
@@ -282,9 +308,17 @@ namespace equalizerapo_and_zune
         private void Init()
         {
             ListeningAddress = Connection.ListeningAddresses().Last();
+            
+            // create the message queue if it doesn't exist
             if (MessageQueue == null)
             {
                 MessageQueue = new Queue<string>();
+            }
+
+            // create AutoResetEvents that don't exist
+            if (reset_MessageQueue == null)
+            {
+                reset_MessageQueue = new AutoResetEvent(true);
             }
         }
 
@@ -386,7 +420,8 @@ namespace equalizerapo_and_zune
 
         private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
         {
-            // get the message
+            // get the message from the message queue
+            reset_MessageQueue.WaitOne(100);
             if (MessageQueue == null)
             {
                 DeferredDisconnected();
@@ -399,6 +434,7 @@ namespace equalizerapo_and_zune
                 return;
             }
             string message = MessageQueue.Dequeue();
+            reset_MessageQueue.Set();
 
             // parse the message
             if (message == SocketClient.KEEP_ALIVE)
@@ -476,7 +512,9 @@ namespace equalizerapo_and_zune
                 }
                 else
                 {
+                    reset_MessageQueue.WaitOne(100);
                     MessageQueue.Enqueue(m);
+                    reset_MessageQueue.Set();
                 }
             }
         }
