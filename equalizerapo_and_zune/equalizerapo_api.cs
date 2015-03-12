@@ -13,6 +13,7 @@ namespace equalizerapo_and_zune
 
         public const int PREAMP_MAX = 30;
         public const double GAIN_MAX = 15;
+        public const double GAIN_ACCURACY = 0.1;
 
         #endregion
 
@@ -168,6 +169,41 @@ namespace equalizerapo_and_zune
         public bool IsEqualizerApplied()
         {
             return applyEqualizer;
+        }
+
+        public void SetNewGainValues(string[] newFilterGains)
+        {
+            // remove unnecessary filters
+            while (CurrentFile.ReadFilters().Count > newFilterGains.Length)
+            {
+                RemoveFilter();
+            }
+
+            // go through existing filters
+            int filterIndex = -1;
+            foreach (KeyValuePair<double, Filter> pair in CurrentFile.ReadFilters())
+            {
+                filterIndex++;
+                Filter filter = pair.Value;
+                double gain = Convert.ToDouble(newFilterGains[filterIndex]);
+
+                // check that the gain will change
+                if (Math.Abs(filter.Gain - gain) < GAIN_ACCURACY)
+                {
+                    continue;
+                }
+
+                // change the gain
+                filter.Gain = gain;
+            }
+
+            // add necessary filters
+            for (filterIndex = CurrentFile.ReadFilters().Count; filterIndex < newFilterGains.Length; filterIndex++)
+            {
+                double gain = Convert.ToDouble(newFilterGains[filterIndex]);
+                AddFilter();
+                CurrentFile.ReadFilters().Last().Value.Gain = gain;
+            }
         }
 
         #endregion

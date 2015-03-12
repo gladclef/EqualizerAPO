@@ -39,9 +39,23 @@ namespace equalizerapo_and_zune
             // parse the message
             switch (messageType)
             {
+                case "apply_filter":
+                    eqAPI.ApplyEqualizer((restOfMessage == "true")
+                        ? true
+                        : false);
+                    break;
                 case "filter":
+                    if (restOfMessage == "added")
+                    {
+                        eqAPI.AddFilter();
+                    }
+                    else if (restOfMessage == "removed")
+                    {
+                        eqAPI.RemoveFilter();
+                    }
                     break;
                 case "filters":
+                    eqAPI.SetNewGainValues(restOfMessage.Split(new char[] { ',' }));
                     break;
                 case "playback":
                     switch (restOfMessage)
@@ -61,8 +75,9 @@ namespace equalizerapo_and_zune
                     }
                     break;
                 case "volume":
-                    break;
-                case "track_changed":
+                    eqAPI.ChangePreamp(
+                        Convert.ToInt32(
+                            Convert.ToDouble(restOfMessage)));
                     break;
             }
         }
