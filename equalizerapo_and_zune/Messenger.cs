@@ -11,21 +11,42 @@ namespace equalizerapo_and_zune
     {
         #region fields
 
+        /// <summary>
+        /// Talks to the <see cref="Connection"/> class to send/receive messages.
+        /// </summary>
         Connection conAPI;
+        /// <summary>
+        /// List of connections that are generated when clients connect.
+        /// </summary>
         LinkedList<Connection> allConnections;
 
         #endregion
 
         #region properties
 
+        /// <summary>
+        /// Used to delegate <see cref="Connection.ConnectedSocket"/> events back to the main form
+        /// </summary>
         public DeferredInvokeDelegate ConnectedSocketCall { get; set; }
+        /// <summary>
+        /// Used to delegate <see cref="Connection.DeferredDisconnected"/> events back to the main form
+        /// </summary>
         public DeferredInvokeDelegate DisconnectedSocketCall { get; set; }
+        /// <summary>
+        /// Used to delegate <see cref="Connection.GetMessage"/> messages back to the main form
+        /// </summary>
         public DeferredInvokeMessageDelegate MessageReceivedCall { get; set; }
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Create a new messenger class with callbacks.
+        /// </summary>
+        /// <param name="connectedSocketCall">For when a client connects</param>
+        /// <param name="disconnectedSocketCall">For when a client disconnects</param>
+        /// <param name="messageReceivedCall">For when a message is recieved</param>
         public Messenger(
             DeferredInvokeDelegate connectedSocketCall,
             DeferredInvokeDelegate disconnectedSocketCall,
@@ -41,16 +62,25 @@ namespace equalizerapo_and_zune
             InitConAPI();
         }
 
+        /// <summary>
+        /// Destroy all connections when a this is destroyed.
+        /// </summary>
         ~Messenger()
         {
             Close();
         }
 
+        /// <summary>
+        /// Closes all connections.
+        /// </summary>
         public void Close()
         {
             CloseAllConnections();
         }
 
+        /// <summary>
+        /// Closes all connections and releases resources.
+        /// </summary>
         private void CloseAllConnections()
         {
             conAPI.Close();
@@ -62,6 +92,12 @@ namespace equalizerapo_and_zune
             allConnections.Clear();
         }
 
+        /// <summary>
+        /// Triggered by <see cref="Connection.GetMessage"/>.
+        /// Passes the message along via <see cref="MessageReceivedCall"/>
+        /// </summary>
+        /// <param name="sender"><see cref="Connection"/></param>
+        /// <param name="e">A <see cref="Connection.MessageReceivedEventArgs"/> object</param>
         public void MessageReceived(object sender, EventArgs e) {
             Connection.MessageReceivedEventArgs cea =
                 (Connection.MessageReceivedEventArgs)e;
@@ -73,6 +109,12 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Triggered by <see cref="Connection.DeferredDisconnect"/>.
+        /// Closes all connection, releases all resources, and reestablishes the listening socket.
+        /// </summary>
+        /// <param name="sender"><see cref="Connection"/></param>
+        /// <param name="e">N/A</param>
         public void DeferredDisconnectedSocket(object sender, EventArgs e)
         {
             CloseAllConnections();
@@ -83,6 +125,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Get a list of the IPv4 addresses of this computer.
+        /// </summary>
+        /// <returns>A list of IPv4 addresses to listen on.</returns>
         public string[] GetPossibleIPAddresses()
         {
             IPAddress[] addresses = Connection.ListeningAddresses();
@@ -108,6 +154,13 @@ namespace equalizerapo_and_zune
             return retval.ToArray();
         }
 
+        /// <summary>
+        /// Changes the listening IPv4 address of the socket.
+        /// Also releases the currently listening socket and creates a new one.
+        /// </summary>
+        /// <param name="newAddress">An IPv4 address.</param>
+        /// <returns>True if the listener was created successfully.</returns>
+        /// <seealso cref="GetPossibleIPAddresses"/>
         public bool ChangeListeningAddress(string newAddress)
         {
             if (newAddress == conAPI.ListeningAddress.ToString())
@@ -125,6 +178,13 @@ namespace equalizerapo_and_zune
             return false;
         }
 
+        /// <summary>
+        /// Broadcast a message to all <see cref="Connection"/>s.
+        /// </summary>
+        /// <param name="message">The message to pass</param>
+        /// <param name="important">True if this message MUST be sent,
+        ///     false if it can be ignored because the attempt is
+        ///     too soon after the last message was sent.</param>
         public void Send(string message, bool important)
         {
             // broadcast to all
@@ -138,6 +198,13 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        /// <summary>
+        /// Triggered by <see cref="Connection.ConnectedSocket"/>.
+        /// Adds the <see cref="Connection"/> to <see cref="allConnections"/> and
+        /// makes a call to <see cref="connectedSocketCall"/>.
+        /// </summary>
+        /// <param name="sender"><see cref="Connection"/></param>
+        /// <param name="e">A <see cref="SocketClient.ConnectedEventArgs"/> object</param>
         private void ConnectedSocket(object sender, EventArgs e)
         {
             SocketClient.ConnectedEventArgs cea =
@@ -157,6 +224,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Initialize this object, including initializing resources and
+        /// creating a <see cref="Connection"/> to listen for incoming connections.
+        /// </summary>
         private void InitConAPI()
         {
             conAPI = new Connection();
