@@ -359,6 +359,7 @@ namespace equalizerapo_and_zune
 
         private void Disconnected(object sender)
         {
+            System.Diagnostics.Debugger.Log(1, "", "disconnected\n");
             Close();
             if (DisconnectedEvent != null)
             {
@@ -386,6 +387,7 @@ namespace equalizerapo_and_zune
 
         private void ConnectedSocket(object sender, EventArgs args)
         {
+            System.Diagnostics.Debugger.Log(1, "", "connected\n");
             SocketClient.ConnectedEventArgs cea =
                 args as SocketClient.ConnectedEventArgs;
 

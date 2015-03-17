@@ -35,26 +35,44 @@ namespace equalizerapo_and_zune
 
         #region fields
 
-        // Cached Socket object that will be used by each call for the lifetime of this class
+        /// <summary>
+        /// Cached Socket object that will be used by each call for the lifetime of this class
+        /// </summary>
         Socket _socket = null;
 
+        /// <summary>
+        /// Used to listen for incoming connections.
+        /// Kept so that it might be closed later.
+        /// </summary>
         private Accepter ListenAccepter;
 
         #endregion
 
         #region event handlers
 
+        /// <summary>
+        /// Triggers when a new client connects.
+        /// </summary>
         public EventHandler ConnectedEvent;
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Close all connections when the socket is destroyed.
+        /// </summary>
         ~SocketClient()
         {
             Close();
         }
 
+        /// <summary>
+        /// Creates a SocketClient with an existing socket.
+        /// </summary>
+        /// <param name="socket">The socket to create with.</param>
+        /// <seealso cref="HandleIncomingMessages"/>
+        /// <returns></returns>
         public string Connect(Socket socket)
         {
             if (socket != _socket)
@@ -71,6 +89,7 @@ namespace equalizerapo_and_zune
         /// <param name="hostName">The name of the host</param>
         /// <param name="portNumber">The port number to connect</param>
         /// <returns>A string representing the result of this connection attempt</returns>
+        /// <seealso cref="HandleIncomingMessages"/>
         public string Connect(string hostName, int portNumber)
         {
             string result = string.Empty;
@@ -102,6 +121,10 @@ namespace equalizerapo_and_zune
                 clientDone.Set();
             });
 
+            // set the send and receive buffer sizes to some unreasonably large number (32k)
+            _socket.SendBufferSize = 32768;
+            _socket.ReceiveBufferSize = 32768;
+
             // Sets the state of the event to nonsignaled, causing threads to block
             clientDone.Reset();
 
@@ -131,6 +154,10 @@ namespace equalizerapo_and_zune
                 Close();
             }
             _socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            // set the send and receive buffer sizes to some unreasonably large number (32k)
+            _socket.SendBufferSize = 32768;
+            _socket.ReceiveBufferSize = 32768;
 
             // Bind the socket to the local endpoint, and listen for incoming connections.
             _socket.Bind(hostEntry);
@@ -201,6 +228,12 @@ namespace equalizerapo_and_zune
             return response;
         }
 
+        /// <summary>
+        /// Used to handle incoming messages from clients.
+        /// Must be triggered before each message.
+        /// </summary>
+        /// <param name="d">A <see cref="SocketCallbackDelegate"/> that
+        ///     is called when a message is received.</param>
         public void HandleIncomingMessages(SocketCallbackDelegate d)
         {
             // We are receiving over an established socket connection
@@ -308,6 +341,11 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Check if there is data available to pull off the socket.
+        /// Note: never tested.
+        /// </summary>
+        /// <returns>True if there is at least one byte available.</returns>
         public bool IsDataReady()
         {
             if (_socket == null ||
@@ -323,6 +361,10 @@ namespace equalizerapo_and_zune
 
         #region public static methods
 
+        /// <summary>
+        /// Accept the connection from a client.
+        /// </summary>
+        /// <param name="ar">The result of the connection.</param>
         public void AcceptReceiveCallback(IAsyncResult ar)
         {
             if (ConnectedEvent != null)
@@ -331,6 +373,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Attempt to release a socket.
+        /// </summary>
+        /// <param name="_socket">The socket to be released.</param>
         public static void FreeSocket(Socket _socket)
         {
             try
@@ -363,6 +409,9 @@ namespace equalizerapo_and_zune
             catch (ObjectDisposedException) { }
             }
 
+        /// <summary>
+        /// Print out a stack trace to the debugger.
+        /// </summary>
         public static void EchoStackTrace()
             {
                 string prepend = "--";
@@ -378,6 +427,9 @@ namespace equalizerapo_and_zune
 
         #region custom event args
 
+        /// <summary>
+        /// Used for the ConnectedEvent event handler
+        /// </summary>
         public class ConnectedEventArgs : EventArgs
         {
             public Socket newSocket;
@@ -398,6 +450,9 @@ namespace equalizerapo_and_zune
 
         #region classes
 
+        /// <summary>
+        /// Used to listen for incoming connections.
+        /// </summary>
         private class Accepter {
             private Socket _socket;
             private EventHandler ConnectedEvent;
@@ -408,11 +463,17 @@ namespace equalizerapo_and_zune
                 this.ConnectedEvent = ConnectedEvent;
             }
 
+            /// <summary>
+            /// Close the socket when the acceptor is destroyed.
+            /// </summary>
             ~Accepter()
             {
                 Close();
             }
 
+            /// <summary>
+            /// Close the socket.
+            /// </summary>
             public void Close()
             {
                 if (_socket != null) {
@@ -422,7 +483,11 @@ namespace equalizerapo_and_zune
                 ConnectedEvent = null;
             }
 
+            /// <summary>
+            /// Accepts the next incoming socket connection.
+            /// </summary>
             public void AcceptNextAsync() {
+
                 // get arguments ready for async accept
                 SocketAsyncEventArgs args = new SocketAsyncEventArgs();
                 args.Completed += new EventHandler<SocketAsyncEventArgs>(AcceptConnection);
@@ -438,6 +503,11 @@ namespace equalizerapo_and_zune
                 }
             }
 
+            /// <summary>
+            /// Second half of AcceptNextAsync()
+            /// </summary>
+            /// <param name="sender">The sender</param>
+            /// <param name="e">the event arguments</param>
             private void AcceptConnection(object sender, SocketAsyncEventArgs e)
             {
                 // check for success
