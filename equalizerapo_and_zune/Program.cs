@@ -15,7 +15,10 @@ namespace equalizerapo_and_zune
         static void Main()
         {
             // check that the Equalizer APO program is installed
-            File.GetEqualizerAPOPath();
+            if (!VerifyRequisiteProgramsInstalled())
+            {
+                return;
+            }
 
             // reset the filter upon exiting the program
             Application.ApplicationExit += ApplicationEnd;
@@ -29,6 +32,30 @@ namespace equalizerapo_and_zune
         private static void ApplicationEnd(object sender, EventArgs e)
         {
             equalizerapo_api.UnsetEqualizer();
+        }
+
+        private static bool VerifyRequisiteProgramsInstalled()
+        {
+            try
+            {
+                File.GetEqualizerAPOPath();
+            }
+            catch (System.IO.FileNotFoundException e)
+            {
+                string message = "The application can't be opened. Requisite applications must first be installed.\n\n" +
+                    "\"" + e.Message + "\"" +
+                    "\n\nWould you like to go to this website now?";
+                string caption = "Unable to start EqualizerAPO and Zune";
+                DialogResult result =
+                    MessageBox.Show(message, caption, MessageBoxButtons.OKCancel, MessageBoxIcon.Error);
+                if (result == DialogResult.OK)
+                {
+                    System.Diagnostics.Process.Start(
+                        "http://sourceforge.net/projects/equalizerapo/");
+                }
+                return false;
+            }
+            return true;
         }
     }
 }
