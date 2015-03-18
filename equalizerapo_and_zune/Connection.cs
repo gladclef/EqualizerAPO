@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// An intermediary between the <see cref="Messenger"/> and <see cref="SocketClient"/> classes.
+    /// This class handles multiple sockets so that the Messenger doesn't have to worry about that aspect.
+    /// </summary>
     public class Connection
     {
         #region constants
@@ -31,13 +35,47 @@ namespace equalizerapo_and_zune
 
         #region fields
 
+        /// <summary>
+        /// The <see cref="SocketClient"/> that this connection uses.
+        /// </summary>
         private SocketClient CurrentSocketClient;
+        /// <summary>
+        /// The <see cref="SocketClient"/> that is used to listen for incoming connections.
+        /// </summary>
         private SocketClient ListeningSocket;
+        /// <summary>
+        /// Used to queue up messages so that message receiving isn't
+        /// blocked by application logic.
+        /// </summary>
         private static Queue<string> MessageQueue;
+        /// <summary>
+        /// Triggers <see cref="GetMessage"/> occasionaly,
+        /// checking to see if there's anything in
+        /// <see cref="MessageQueue"/>.
+        /// </summary>
         private System.Timers.Timer MessageListenerTimer;
+        /// <summary>
+        /// Like <see cref="MessageListenerTimer"/>, except that
+        /// it starts once a message is received, continues until
+        /// a message is no longer in the queue, and triggers
+        /// significantly more often.
+        /// </summary>
         private System.Timers.Timer ShortMessageListenerTimer;
+        /// <summary>
+        /// Check occasionally to see if the
+        /// <see cref="CurrentSocketClient"/> is still alive.
+        /// </summary>
         private System.Timers.Timer KeepAliveTimer;
+        /// <summary>
+        /// The thread spawned to listen for incoming connections.
+        /// Kept so that the thread might be killed.
+        /// </summary>
         private Thread ListenerThread;
+        /// <summary>
+        /// The last time a message was sent.
+        /// Tracked so that unimportant messages can be ignored and
+        /// messages aren't sent too often.
+        /// </summary>
         private long LastSendTime;
         /// <summary>
         /// used to obtain exclusive access to the message queue
@@ -48,6 +86,9 @@ namespace equalizerapo_and_zune
 
         #region properties
 
+        /// <summary>
+        /// The IPv4 address of the listening socket.
+        /// </summary>
         public IPAddress ListeningAddress { get; private set; }
 
         #endregion
@@ -62,22 +103,37 @@ namespace equalizerapo_and_zune
 
         #region public methods
 
+        /// <summary>
+        /// Create a connection object by don't connect to anything.
+        /// </summary>
         public Connection()
         {
             Init();
         }
 
+        /// <summary>
+        /// Create a connection object and establish a connection.
+        /// </summary>
+        /// <param name="hostname">The IPv4 address to connect to.</param>
+        /// <param name="port">The port to connect to.</param>
+        /// <seealso cref="APP_PORT"/>
         public Connection(String hostname, int port)
         {
             Init();
             Connect(hostname, port);
         }
 
+        /// <summary>
+        /// When this is destroyed, close all sockets and release resources.
+        /// </summary>
         ~Connection()
         {
             Close();
         }
 
+        /// <summary>
+        /// Close all sockets and release resources.
+        /// </summary>
         public void Close()
         {
             // release connections and stop timers
@@ -94,6 +150,12 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Connect to an already-established Socket.
+        /// </summary>
+        /// <param name="socket">The socket to connect to.</param>
+        /// <returns>One of the string constants of the <see cref="SocketClient"/> class.
+        ///     Is successful when returning SocketClient.SUCCESS</returns>
         public string Connect(Socket socket)
         {
             // check pre-conditions
@@ -110,6 +172,14 @@ namespace equalizerapo_and_zune
             return success;
         }
 
+        /// <summary>
+        /// Create a socket and start listening for incoming connections.
+        /// </summary>
+        /// <param name="hostname">The IPv4 address to connect to.</param>
+        /// <param name="port">The port to connect to.</param>
+        /// <returns>One of the string constants of the <see cref="SocketClient"/> class.
+        ///     Is successful when returning SocketClient.SUCCESS</returns>
+        /// <seealso cref="APP_PORT"/>
         public string Connect(String hostname, int port)
         {
             // check pre-conditions
@@ -136,17 +206,31 @@ namespace equalizerapo_and_zune
             return success;
         }
 
+        /// <summary>
+        /// Get the status of this connection.
+        /// </summary>
+        /// <returns>True if a client is connected.</returns>
         public bool IsConnected()
         {
             return (CurrentSocketClient != null);
         }
 
+        /// <summary>
+        /// Start listening for incoming connections by calling
+        /// <see cref="StartConnectionListener"/> on the
+        /// <see cref="ListenerThread"/> thread.
+        /// </summary>
         public void ListenForIncomingConnections()
         {
             ListenerThread = new Thread(new ParameterizedThreadStart(StartConnectionListener));
             ListenerThread.Start();
         }
 
+        /// <summary>
+        /// Change the listening address, including freeing the previous
+        /// <see cref="SocketClient"/> and connecting to a new one.
+        /// </summary>
+        /// <param name="newAddress">The new IPv4 address to connect to.</param>
         public void ChangeListeningAddress(IPAddress newAddress)
         {
             bool alreadyListening = false;
@@ -174,6 +258,15 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Send a message to the current socket.
+        /// </summary>
+        /// <param name="data">The message to send.</param>
+        /// <param name="important">True if this message MUST be sent,
+        ///     false if it can be ignored because the attempt is
+        ///     too soon after the last message was sent.</param>
+        /// <returns>One of the string constants of the <see cref="SocketClient"/> class.
+        ///     Is successful when returning SocketClient.SUCCESS</returns>
         public string Send(string data, bool important)
         {
             // check preconditions
@@ -208,11 +301,20 @@ namespace equalizerapo_and_zune
             return success;
         }
 
+        /// <summary>
+        /// Stop all action and wait for a message to be recieved by the current socket.
+        /// </summary>
+        /// <returns>The message, or one of the <see cref="SocketClient"/> string constants.</returns>
         public string Receive()
         {
             return Receive(true);
         }
 
+        /// <summary>
+        /// Try and receive a message from the current socket client.
+        /// Recommended to use <see cref="MessageReceivedEvent"/> instead.
+        /// </summary>
+        /// <returns>The message, or one of the <see cref="SocketClient"/> string constants.</returns>
         public string Receive(bool waitForTimeout)
         {
             if (CurrentSocketClient == null)
@@ -222,6 +324,10 @@ namespace equalizerapo_and_zune
             return CurrentSocketClient.Receive(waitForTimeout);
         }
 
+        /// <summary>
+        /// Start listening for incoming messages.
+        /// </summary>
+        /// <seealso cref="ListenForIncomingConnections"/>
         public void StartListening()
         {
             // check pre-conditions
@@ -269,6 +375,11 @@ namespace equalizerapo_and_zune
 
         #region public static methods
 
+        /// <summary>
+        /// Kill the given timer.
+        /// </summary>
+        /// <param name="timer">The timer to kill.</param>
+        /// <param name="timerName">Name of the timer (for debugging purposes).</param>
         public static void KillTimer(System.Timers.Timer timer, string timerName)
         {
             try
@@ -282,6 +393,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Get a list of IPv4 addresses this computer is connected to.
+        /// </summary>
+        /// <returns>The list of addresses.</returns>
         public static IPAddress[] ListeningAddresses()
         {
             return Array.FindAll(
@@ -293,6 +408,10 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        /// <summary>
+        /// Initialize the connection, including initializing collections and retrieving
+        /// the listening addresses.
+        /// </summary>
         private void Init()
         {
             ListeningAddress = Connection.ListeningAddresses().Last();
@@ -310,6 +429,9 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Closes all sockets and releases resources.
+        /// </summary>
         private void EndConnection()
         {
             if (CurrentSocketClient != null)
@@ -352,11 +474,17 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Closes all sockets and releases resources.
+        /// </summary>
         private void Disconnected()
         {
             Disconnected(null);
         }
 
+        /// <summary>
+        /// Closes all sockets and releases resources.
+        /// </summary>
         private void Disconnected(object sender)
         {
             System.Diagnostics.Debugger.Log(1, "", "disconnected\n");
@@ -367,6 +495,9 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Calls <see cref="Disconnected"/> via a deferred invoke handler.
+        /// </summary>
         private void DeferredDisconnected()
         {
             Application.DeferredInvoke(
@@ -374,6 +505,11 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Start listening for incoming connections.
+        /// Used to start listening on a new thread by <see cref="ListenForIncomingConnections"/>.
+        /// </summary>
+        /// <param name="sender"><see cref="Connection"/></param>
         private void StartConnectionListener(object sender)
         {
             if (ListeningSocket != null)
@@ -385,6 +521,13 @@ namespace equalizerapo_and_zune
             ListeningSocket.Listen(ListeningAddress, Connection.APP_PORT);
         }
 
+        /// <summary>
+        /// Triggered by <see cref="SocketClient.ConnectedEvent"/> event.
+        /// Starts listening for messages on the received socket and
+        /// calls <see cref="ConnectedEvent"/>.
+        /// </summary>
+        /// <param name="sender"><see cref="SocketClient"/></param>
+        /// <param name="args">A <see cref="SocketClient.ConnectedEventArgs"/> object.</param>
         private void ConnectedSocket(object sender, EventArgs args)
         {
             System.Diagnostics.Debugger.Log(1, "", "connected\n");
@@ -408,6 +551,14 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Checks if a message has been received and interprets the basic message.
+        /// If a message, calls <see cref="MessageReceivedEvent"/>.
+        /// If a disconnection from the socket, calls <see cref="DeferredDisconnected"/>.
+        /// Called occasionally by <see cref="MessageListenerTimer"/>
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="args">N/A</param>
         private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
         {
             // get the message from the message queue
@@ -476,11 +627,24 @@ namespace equalizerapo_and_zune
             }
         }
         
+        /// <summary>
+        /// Checks that the <see cref="CurrentSocket"/> is alive.
+        /// Called occasionally by the <see cref="KeepAliveTimer"/>.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="args">N/A</param>
         private void KeepAliveChecker(object sender, System.Timers.ElapsedEventArgs args)
         {
             Send(SocketClient.KEEP_ALIVE, false);
         }
 
+        /// <summary>
+        /// Triggered by <see cref="SocketClient.HandleIncomingMessages"/>.
+        /// Adds messages to the <see cref="MessageQueue"/>.
+        /// If the socket sends a disconnect message, calls <see cref="DeferredDisconnected"/>.
+        /// </summary>
+        /// <param name="s">N/A</param>
+        /// <param name="args">The message received event args</param>
         private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs args)
         {
             // check for null values
@@ -556,6 +720,9 @@ namespace equalizerapo_and_zune
 
         #region classes
 
+        /// <summary>
+        /// Used for the <see cref="MessageReceivedEvent"/> event handler.
+        /// </summary>
         public class MessageReceivedEventArgs : EventArgs
         {
             public string message;

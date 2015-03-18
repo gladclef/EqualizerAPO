@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// An intermediary between the <see cref="Connection"/> class and the main form.
+    /// This class handles multiple Connections so that the form doesn't have to worry about that aspect.
+    /// </summary>
     class Messenger
     {
         #region fields
