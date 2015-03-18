@@ -6,29 +6,56 @@ using System.Threading.Tasks;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// Parses incoming messages from clients and
+    /// prepares outgoing messages for clients.
+    /// </summary>
     public class MessageParser
     {
         #region fields/properties
 
+        /// <summary>
+        /// The type of message to be created.
+        /// <seealso cref="CreateMessage"/>
+        /// </summary>
         public enum MESSAGE_TYPE
         {
             TRACK_CHANGED, FILTERS_GAIN, FILTER_REMOVED,
             FILTER_ADDED, PLAY, PAUSE, VOLUME_CHANGED,
             FILTER_APPLY
         };
+        
+        /// <summary>
+        /// A reference to the equalizer object to call methods upon or get values from.
+        /// </summary>
         private equalizerapo_api eqAPI;
+        
+        /// <summary>
+        /// A reference to the zune object to call methods upon or get values from.
+        /// </summary>
         private ZuneAPI zuneAPI;
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Create a new instance of the MessageParser object with the
+        /// given references.
+        /// </summary>
+        /// <param name="eq">Reference to the <see cref="eqAPI"/> object.</param>
+        /// <param name="zune">Reference to the <see cref="zuneAPI"/> object.</param>
         public MessageParser(equalizerapo_api eq, ZuneAPI zune)
         {
             eqAPI = eq;
             zuneAPI = zune;
         }
 
+        /// <summary>
+        /// Given a message from the client, parse the message to enact changes
+        /// in the equalizer or zune instances.
+        /// </summary>
+        /// <param name="message">The message to be parsed.</param>
         public void ParseMessage(string message)
         {
             // get the message parts
@@ -86,10 +113,11 @@ namespace equalizerapo_and_zune
             }
         }
 
-        #endregion
-
-        #region private methods
-
+        /// <summary>
+        /// Create a message to be passed to the client.
+        /// </summary>
+        /// <param name="type">The type of message to be passed.</param>
+        /// <returns>Said message.</returns>
         public string CreateMessage(MESSAGE_TYPE type)
         {
             StringBuilder sb = new StringBuilder();

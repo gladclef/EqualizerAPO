@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// Tracks a single filter of a <see cref="Track"/>/<see cref="File"/>/<see cref="equalizerapo_api"/>.
+    /// </summary>
     public class Filter
     {
         #region fields

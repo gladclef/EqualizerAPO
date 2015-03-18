@@ -21,29 +21,61 @@ namespace equalizerapo_and_zune
     {
         #region fields
 
+        /// <summary>
+        /// The thread that handles the initialization of the Zune application.
+        /// </summary>
         private Thread zuneThread;
+
+        /// <summary>
+        /// The thread that handles connections to the Zune API.
+        /// </summary>
         private Thread connectThread;
 
         #endregion
 
         #region properties
 
+        /// <summary>
+        /// Instance of the this class (singleton pattern)
+        /// </summary>
         public static ZuneAPI Instance { get; private set; }
+        
+        /// <summary>
+        /// State of the Zune player.
+        /// </summary>
         public static bool IsZuneReady { get; private set; }
+
+        /// <summary>
+        /// State of the connection to the Zune API.
+        /// </summary>
         public static bool IsConnectReady { get; private set; }
+
+        /// <summary>
+        /// Reference to the currently playing track.
+        /// </summary>
         public Track CurrentTrack { get; private set; }
 
         #endregion
 
         #region event handlers
 
+        /// <summary>
+        /// Triggers whenever a track changed event is received from the Zune player.
+        /// </summary>
         public EventHandler TrackChanged { get; set; }
+
+        /// <summary>
+        /// Triggers whenever the playback status is changed by the Zune player.
+        /// </summary>
         public EventHandler PlaybackChanged { get; set; }
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Create a new instance of the ZuneAPI class.
+        /// </summary>
         public ZuneAPI()
         {
             IsZuneReady = IsConnectReady = false;
@@ -53,11 +85,19 @@ namespace equalizerapo_and_zune
             ZuneAPI.Instance = this;
         }
 
+        /// <summary>
+        /// When the ZuneAPI object is destroyed, close the Zune Appliction threads.
+        /// </summary>
         ~ZuneAPI()
         {
             Close();
         }
 
+        /// <summary>
+        /// Create threads to <see cref="zuneThread"/> and the <see cref="connectThread"/>,
+        /// if they haven't been created already.
+        /// </summary>
+        /// <returns>True for creation, false if created already.</returns>
         public bool Init() {
             if (IsZuneReady || IsConnectReady)
             {
@@ -74,6 +114,9 @@ namespace equalizerapo_and_zune
             return true;
         }
 
+        /// <summary>
+        /// Close the Zune Application threads.
+        /// </summary>
         public void Close()
         {
             if (zuneThread != null && zuneThread.IsAlive)
@@ -88,6 +131,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Causes the Zune player to start playing the selected track,
+        /// which in turn triggers the <see cref="PlaybackChanged"/> event handler.
+        /// </summary>
         public void PlayTrack()
         {
             Application.DeferredInvoke(
@@ -99,6 +146,10 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Causes the Zune player to pause the selected track,
+        /// which in turn triggers the <see cref="PlaybackChanged"/> event handler.
+        /// </summary>
         public void PauseTrack()
         {
             Application.DeferredInvoke(
@@ -110,6 +161,10 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Causes the Zune player to skip to the next track,
+        /// which in turn triggers the <see cref="TrackChanged"/> event handler.
+        /// </summary>
         public void ToNextTrack()
         {
             Application.DeferredInvoke(
@@ -121,6 +176,10 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Causes the Zune player to skip to the previous track (or start the current track over),
+        /// which in turn triggers the <see cref="TrackChanged"/> event handler.
+        /// </summary>
         public void ToPreviousTrack()
         {
             Application.DeferredInvoke(
@@ -132,6 +191,10 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Get the artist name of the currently playing track.
+        /// </summary>
+        /// <returns>The artist name.</returns>
         public string GetTrackArtist()
         {
             if (CurrentTrack == null)
@@ -141,6 +204,10 @@ namespace equalizerapo_and_zune
             return CurrentTrack.Artist;
         }
 
+        /// <summary>
+        /// Get the track name of the currently playing track.
+        /// </summary>
+        /// <returns>The track name.</returns>
         public string GetTrackName()
         {
             if (CurrentTrack == null)
@@ -150,6 +217,10 @@ namespace equalizerapo_and_zune
             return CurrentTrack.Title;
         }
 
+        /// <summary>
+        /// Get the playback status from the Zune Player.
+        /// </summary>
+        /// <returns>True if playing.</returns>
         public bool IsPlaying()
         {
             return TransportControls.Instance.Playing;
@@ -159,11 +230,17 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        /// <summary>
+        /// Start the Zune application.
+        /// </summary>
         private void ZuneThreadStarter()
         {
             ZuneApplication.Launch(null, IntPtr.Zero);
         }
 
+        /// <summary>
+        /// Connect to the Zune application through the API.
+        /// </summary>
         private void ConnectThreadStarter()
         {
             // wait for zune to finish loading
@@ -178,6 +255,12 @@ namespace equalizerapo_and_zune
                 DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Triggered by playback/track changed events in the Zune player.
+        /// Calls the <see cref="TrackChanged"/> or <see cref="PlaybackChanged"/> event handlers.
+        /// </summary>
+        /// <param name="sender">The Zune application</param>
+        /// <param name="e">The event arguments.</param>
         private void TransportPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName.Equals("CurrentTrack")) // the current track has changed
@@ -204,6 +287,10 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Binds the <see cref="TransportPropertyChanged"/> to the Zune application.
+        /// </summary>
+        /// <param name="sender">this</param>
         private void BindEvents(object sender)
         {
             TransportControls.Instance.PropertyChanged += new PropertyChangedEventHandler(TransportPropertyChanged);
