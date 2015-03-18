@@ -15,15 +15,33 @@ namespace equalizerapo_and_zune
     {
         #region fields
 
+        /// <summary>
+        /// The filesystem path to the EqualizerAPO config.txt file.
+        /// </summary>
         private static String FullPathFound = null;
+        
+        /// <summary>
+        /// The preAmp (aka volume) value in the file.
+        /// </summary>
         private int preAmp;
 
         #endregion
 
         #region properties
 
+        /// <summary>
+        /// The Track referenced to by this file.
+        /// </summary>
         public Track TrackRef { get; private set; }
+        
+        /// <summary>
+        /// The filesystem path to the track's config file.
+        /// </summary>
         public String FullPath { get; private set; }
+
+        /// <summary>
+        /// Saves the file, which calls the <see cref="FileSaved"/> event handler.
+        /// </summary>
         public int PreAmp
         {
             get { return preAmp; }
@@ -60,17 +78,30 @@ namespace equalizerapo_and_zune
 
         #region event handlers
 
+        /// <summary>
+        /// Triggers whenever the file is saved.
+        /// </summary>
         public EventHandler FileSaved;
 
         #endregion
 
         #region public methods
 
+        /// <summary>
+        /// Create and initialize the File class object.
+        /// Throw a FileNotFoundException if the EqualizerAPO config file can't be found.
+        /// </summary>
         public File()
         {
             Init();
         }
 
+        /// <summary>
+        /// Create and initialize the File class object, including loading
+        /// the file for the given track.
+        /// Throw a FileNotFoundException if the EqualizerAPO config file can't be found.
+        /// </summary>
+        /// <param name="track">A track to load settings for.</param>
         public File(Track track)
         {
             Init();
@@ -79,10 +110,18 @@ namespace equalizerapo_and_zune
             ReadFilters();
         }
 
+        /// <summary>
+        /// Formats the name of <see cref="Trackref"/>.
+        /// </summary>
+        /// <returns>The formatted name</returns>
         public String GetEqualizerFilename() {
             return "e2z_" + TrackRef.GetFullName() + ".txt";
         }
 
+        /// <summary>
+        /// Reads all of the filters from the file, or creates a new file if the file doesn't exist.
+        /// </summary>
+        /// <returns>The filters for the current <see cref="Trackref"/>.</returns>
         public SortedList<double, Filter> ReadFilters()
         {
             SortedList<double, Filter> filters = new SortedList<double, Filter>();
@@ -137,6 +176,9 @@ namespace equalizerapo_and_zune
             return filters;
         }
 
+        /// <summary>
+        /// Removes the last filter from the set of filters for this file.
+        /// </summary>
         public void RemoveFilter()
         {
             WriteThrough = false;
@@ -159,6 +201,9 @@ namespace equalizerapo_and_zune
             SaveFile();
         }
 
+        /// <summary>
+        /// Adds a filter to the end of the filters set for this file.
+        /// </summary>
         public void AddFilter()
         {
             Filter filter = null;
@@ -188,6 +233,9 @@ namespace equalizerapo_and_zune
             SaveFile();
         }
 
+        /// <summary>
+        /// Forces a save, even if nothing has changed.
+        /// </summary>
         public void ForceSave()
         {
             SaveFile(true);
@@ -197,6 +245,11 @@ namespace equalizerapo_and_zune
 
         #region public static methods
 
+        /// <summary>
+        /// Search the filesystem for the path of the "config.txt" file for Equalizer.APO.
+        /// Throw a FileNotFoundException if the file can't be found.
+        /// </summary>
+        /// <returns>The directory path to the "config.txt" file.</returns>
         public static String GetEqualizerAPOPath() {
             if (FullPathFound != null)
             {
@@ -221,14 +274,16 @@ namespace equalizerapo_and_zune
                 path1);
         }
 
-        public static void WriteAllLines(String path, string[] lines)
+        /// <summary>
+        /// Write all lines to a file.
+        /// Throws an IOException if writing fails after 1/2 sec.
+        /// </summary>
+        /// <param name="path">The path to write to.</param>
+        /// <param name="lines">The lines to write.</param>
+        /// <param name="depth">For internal use.</param>
+        public static void WriteAllLines(String path, string[] lines, int depth = 0)
         {
-            File.WriteAllLines(path, lines, 0);
-        }
-
-        public static void WriteAllLines(String path, string[] lines, int depth)
-        {
-            if (depth > 50)
+            if (depth > 5)
             {
                 // don't catch exception anymore
                 System.IO.File.WriteAllLines(path, lines);
@@ -243,7 +298,7 @@ namespace equalizerapo_and_zune
             {
                 System.Threading.Thread.Sleep(100);
                 // maybe I should do something here?
-                File.WriteAllLines(path, lines);
+                File.WriteAllLines(path, lines, depth + 1);
             }
         }
 
@@ -251,6 +306,9 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        /// <summary>
+        /// Initialize, including setting up field values.
+        /// </summary>
         private void Init() {
             TrackRef = null;
             FullPath = "";
@@ -283,17 +341,24 @@ namespace equalizerapo_and_zune
             return filters;
         }
 
+        /// <summary>
+        /// Triggered by <see cref="Filter.Frequency"/>, <see cref="Filter.Gain"/>, and/or <see cref="Filter.Q"/>.
+        /// Save the file with the new values.
+        /// Calls the <see cref="FileSaved"/> event handler.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
         private void FilterChanged(object sender, EventArgs e)
         {
             SaveFile();
         }
 
-        private void SaveFile()
-        {
-            SaveFile(false);
-        }
-
-        private void SaveFile(bool force)
+        /// <summary>
+        /// Save the file, including all of the latest filter values.
+        /// Calls the <see cref="FileSaved"/> event handler.
+        /// </summary>
+        /// <param name="force">Forces a save, even if <see cref="WriteThrough"/> is false.</param>
+        private void SaveFile(bool force = false)
         {
             if (!WriteThrough && !force)
             {
