@@ -10,34 +10,94 @@ using System.Windows.Forms;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// Handles the GUI logic of the appliction.
+    /// 
+    /// Also handles the application logic, which it really shouldn't and
+    /// I will move at some point to another object. TODO
+    /// </summary>
     public partial class form_main : Form
     {
         #region constants
 
-        public const string CONNECTION_ESTABLISHED = "Connected!";
-        public const string LISTENING_FOR_CONNECTION = "Listening on: ";
+        private const string CONNECTION_ESTABLISHED = "Connected!";
+        private const string LISTENING_FOR_CONNECTION = "Listening on: ";
 
         #endregion
 
         #region fields
 
+        /// <summary>
+        /// The object used to talk to the Zune player.
+        /// </summary>
         public ZuneAPI zuneAPI;
+
+        /// <summary>
+        /// The object used to talk to Equalizer APO
+        /// and keep the state of the equalizer.
+        /// </summary>
         public equalizerapo_api eqAPI;
-        public Connection conAPI;
+
+        /// <summary>
+        /// Tracks the filter last hovered over by the mouse on top of
+        /// the <see cref="chart_filters"/> object.
+        /// Used so that mousedrag events can be properly handled.
+        /// </summary>
         private int previousFilterIndex;
+
+        /// <summary>
+        /// Tracks the state of the mouse left button (pressed or no?)
+        /// in relation to <see cref="chart_filters"/>.
+        /// </summary>
         private bool mousePressed = false;
+
+        /// <summary>
+        /// Set of numeric controls for the filters on the equalizer.
+        /// Auto-generated set whenever a filter is added/removed.
+        /// </summary>
         private LinkedList<NumericUpDown> NumberInputs;
+
+        /// <summary>
+        /// The object used to send and receive messages from any clients (app extensions).
+        /// </summary>
         private Messenger messenger;
+
+        /// <summary>
+        /// An optimization to prevent feedback during filter gain updates
+        /// via the <see cref="chart_filters"/> control.
+        /// </summary>
         private bool doHandleNumericValueChanged = true;
+
+        /// <summary>
+        /// Reference to the object used to create/parse messages
+        /// to/from the app clients.
+        /// </summary>
         private MessageParser messageParser;
+
+        /// <summary>
+        /// An optimization to prevent feedback to/from the client app
+        /// when the client updates or this form updates.
+        /// </summary>
         private Dictionary<string, bool> updateMessagesEnabled;
+
+        /// <summary>
+        /// An optimization to prevent feedback events when a track is changed.
+        /// </summary>
         private Track cachedTrack;
+
+        /// <summary>
+        /// An optimization to prevent feedback events when the playback is changed. 
+        /// </summary>
         private bool cachedPlayback;
 
         #endregion
 
         #region public/initizer methods
 
+        /// <summary>
+        /// Create a new instance of this object, including
+        /// initializing all of it's constituent parts and fields.
+        /// </summary>
         public form_main()
         {
             InitializeComponent();
@@ -64,6 +124,11 @@ namespace equalizerapo_and_zune
             UpdateListenerDescription(false);
         }
 
+        /// <summary>
+        /// Sets the minimum and maximum values on the volume slider,
+        /// since that is apparently not something the form designer
+        /// is any good for.
+        /// </summary>
         private void InitMinMax()
         {
             this.trackbar_volume.Maximum = equalizerapo_api.PREAMP_MAX;
@@ -80,6 +145,11 @@ namespace equalizerapo_and_zune
                 -2147483648});
         }
 
+        /// <summary>
+        /// Initialize the equalizer and Zune objects,
+        /// opening/connecting to the Zune player and
+        /// connecting the equalizer.
+        /// </summary>
         private void InitEqAndZune()
         {
             // create objects
@@ -97,6 +167,11 @@ namespace equalizerapo_and_zune
             zuneAPI.Init();
         }
 
+        /// <summary>
+        /// Initialize the enables such that messages received are not accepted.
+        /// They are enabled once the track has changed and playback has changed due
+        /// to events from the Zune player.
+        /// </summary>
         private void InitEnablers()
         {
             updateMessagesEnabled = new Dictionary<string, bool>();
@@ -104,6 +179,10 @@ namespace equalizerapo_and_zune
             updateMessagesEnabled.Add("playback", false);
         }
 
+        /// <summary>
+        /// Create and initialize the Messenger object to enable talking to
+        /// the client app.
+        /// </summary>
         private void InitMessenger()
         {
             messenger = new Messenger(
@@ -112,12 +191,20 @@ namespace equalizerapo_and_zune
                 new Messenger.DeferredInvokeMessageDelegate(MessageReceieved));
         }
 
+        /// <summary>
+        /// When this object is destructed, also close the player and messenger.
+        /// </summary>
         ~form_main()
         {
             zuneAPI.Close();
-            conAPI.Close();
+            messenger.Close();
         }
 
+        /// <summary>
+        /// Change the value of the <see cref="label_artistname_trackname"/>.
+        /// </summary>
+        /// <param name="newTitle">The new title to use. Likely to be
+        ///     gathered from <see cref="Track.GetFullName"/>.</param>
         public void UpdateTrackTitle(String newTitle)
         {
             if (newTitle == null)
@@ -141,6 +228,13 @@ namespace equalizerapo_and_zune
 
         #region private methods
 
+        /// <summary>
+        /// Handle a track changed event.
+        /// Triggered by the <see cref="ZuneAPI.TrackChanged"/> event handler.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="DeferredUpdateAll"/>
         private void TrackChanged(object sender, EventArgs e)
         {
             if (cachedTrack != zuneAPI.CurrentTrack)
@@ -151,6 +245,13 @@ namespace equalizerapo_and_zune
             DeferredUpdateAll(sender);
         }
 
+        /// <summary>
+        /// Handle a playback changed event.
+        /// Triggered by the <see cref="ZuneAPI.PlaybackChanged"/> event handler.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="DeferredUpdateAll"/>
         private void PlaybackChanged(object sender, EventArgs e)
         {
             if (cachedPlayback != zuneAPI.IsPlaying())
@@ -170,11 +271,22 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Handle a equalizer changed event.
+        /// Triggered by the <see cref="equalizerapo_api.EqualizerChanged"/> event handler.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="DeferredUpdateAll"/>
         private void EqualizerChanged(object sender, EventArgs e)
         {
             DeferredUpdateAll(null);
         }
 
+        /// <summary>
+        /// Calls <see cref="UpdateAll"/> through a deferred invoke handler.
+        /// </summary>
+        /// <param name="sender">N/A</param>
         private void DeferredUpdateAll(object sender)
         {
             Microsoft.Iris.Application.DeferredInvoke(
@@ -182,6 +294,16 @@ namespace equalizerapo_and_zune
                 Microsoft.Iris.DeferredInvokePriority.Normal);
         }
 
+        /// <summary>
+        /// Updates the state of the form to reflect the current state of the
+        /// track/playback/filters/messenger.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <seealso cref="DeferredUpdateAll"/>
+        /// <seealso cref="UpdateTrackTitle"/>
+        /// <seealso cref="UpdateEqualizer"/>
+        /// <seealso cref="UpdatePlaybackButton"/>
+        /// <seealso cref="UpdatePreamp"/>
         private void UpdateAll(object sender)
         {
             if (zuneAPI.CurrentTrack == null)
@@ -207,6 +329,12 @@ namespace equalizerapo_and_zune
             UpdatePreamp();
         }
 
+        /// <summary>
+        /// Updates the <see cref="chart_filters"/> and <see cref="NumberInputs"/>
+        /// to reflect the current state of the filters.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <seealso cref="UpdateAll"/>
         private void UpdateEqualizer(object sender)
         {
             if (chart_filters.InvokeRequired)
@@ -223,10 +351,15 @@ namespace equalizerapo_and_zune
                 // update the filter text inputs
                 UpdateEqualizerTextInputs();
 
+                // force the chart to update to the new values
                 chart_filters.DataBind();
             }
         }
 
+        /// <summary>
+        /// Update the <see cref="chart_filters"/> to reflect the gains of the filters.
+        /// </summary>
+        /// <seealso cref="UpdateAll"/>
         private void UpdateEqualizerGraph()
         {
             //
@@ -274,6 +407,10 @@ namespace equalizerapo_and_zune
             series.BorderWidth = 3;
         }
 
+        /// <summary>
+        /// Update the <see cref="NumberInputs"/> to reflect the gains of the filters.
+        /// </summary>
+        /// <seealso cref="UpdateAll"/>
         private void UpdateEqualizerTextInputs()
         {
             SortedList<double, Filter> filters = eqAPI.GetFilters();
@@ -323,6 +460,10 @@ namespace equalizerapo_and_zune
             doHandleNumericValueChanged = true;
         }
 
+        /// <summary>
+        /// Update the playback button to be either a play or pause button,
+        /// according the the current <see cref="ZuneAPI.IsPlaying"/> state.
+        /// </summary>
         private void UpdatePlaybackButton()
         {
             if (button_play_pause.InvokeRequired)
@@ -344,6 +485,13 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Handle a value changed event from one of the <see cref="NumberInputs"/>.
+        /// Triggered by a ValueChanged event on one of the NumericUpDowns.
+        /// Goes through each numeric input and changes it based on the current value of its related filter.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
         private void number_inputs_ValueChanged(object sender, EventArgs e)
         {
             if (!doHandleNumericValueChanged)
@@ -366,18 +514,40 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Handle a click event on the <see cref="button_next"/>.
+        /// Causes the Zune player to move to the next track and the
+        /// "track" enabler (<see cref="updateMessageEnabled"/>) to be set to true.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
         private void button_next_Click(object sender, EventArgs e)
         {
             updateMessagesEnabled["track"] = true;
             zuneAPI.ToNextTrack();
         }
 
+        /// <summary>
+        /// Handle a click event on the <see cref="button_previous"/>.
+        /// Causes the Zune player to move to the previous track and the
+        /// "track" enabler (<see cref="updateMessageEnabled"/>) to be set to true.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
         private void button_previous_Click(object sender, EventArgs e)
         {
             updateMessagesEnabled["track"] = true;
             zuneAPI.ToPreviousTrack();
         }
 
+        /// <summary>
+        /// Handles a mouse move event on the <see cref="chart_filters"/>.
+        /// If the mouse is being pressed, then update the gain of the filter
+        /// at the <see cref="previousFilterIndex"/> that was found when the
+        /// mouse was first pressed on the chart.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">mouse event</param>
         private void chart_filters_MouseMove(object sender, MouseEventArgs e)
         {
             if (!mousePressed)
@@ -388,6 +558,13 @@ namespace equalizerapo_and_zune
             chart_filters_Click(sender, e, previousFilterIndex);
         }
 
+        /// <summary>
+        /// Register that the mouse is no longer being pressed on the
+        /// <see cref="chart_filters."/>.
+        /// Also FORCE a filter gains update with the client app.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
         private void chart_filters_MouseUp(object sender, MouseEventArgs e)
         {
             mousePressed = false;
@@ -396,19 +573,14 @@ namespace equalizerapo_and_zune
                 true);
         }
 
-        private void chart_filters_Click(object sender, MouseEventArgs e)
-        {
-            chart_filters_Click(sender, e, -1);
-            mousePressed = true;
-        }
-
         /// <summary>
         /// Adjusts the gain based on which filter is clicked.
+        /// Also register that the mouse is currently being pressed on the <see cref="chart_filters"/>.
         /// </summary>
         /// <param name="sender">sender object</param>
         /// <param name="e">mouse event</param>
-        /// <param name="filterIndex">if -1, then computer filter index</param>
-        private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex)
+        /// <param name="filterIndex">if -1, then compute filter index</param>
+        private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex = -1)
         {
             double gainMax = equalizerapo_api.GAIN_MAX;
             double filterCount = eqAPI.GetFilters().Count;
@@ -463,8 +635,18 @@ namespace equalizerapo_and_zune
                     MessageParser.MESSAGE_TYPE.FILTERS_GAIN),
                     false);
             }
+
+            // register that the mouse is currently pressed on the chart
+            mousePressed = true;
         }
 
+        /// <summary>
+        /// Handle checking or unchecking of the <see cref="checkbox_apply_equalizer"/>.
+        /// Applies or doesn't apply the equalizer as given by the state of the checkbox.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.ApplyEqualizer"/>
         private void checkbox_apply_equalizer_CheckedChanged(object sender, EventArgs e)
         {
             if (checkbox_apply_equalizer.InvokeRequired)
@@ -481,6 +663,13 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Handle the zero'ing out of the filter gains by clicking on the <see cref="link_zero_equalizer"/>.
+        /// Zeros out the filter gains.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.ZeroOutEqualizer"/>
         private void link_zero_equalizer_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             eqAPI.ZeroOutEqualizer();
@@ -489,6 +678,13 @@ namespace equalizerapo_and_zune
                 true);
         }
 
+        /// <summary>
+        /// Handles a click on <see cref="button_remove_filter"/>.
+        /// Removes a filter.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.RemoveFilter"/>
         private void button_remove_filter_Click(object sender, EventArgs e)
         {
             eqAPI.RemoveFilter();
@@ -496,7 +692,14 @@ namespace equalizerapo_and_zune
                 MessageParser.MESSAGE_TYPE.FILTER_REMOVED),
                 true);
         }
-
+        
+        /// <summary>
+        /// Handles a click on <see cref="button_add_filter"/>.
+        /// Removes a filter.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.AddFilter"/>
         private void button_add_filter_Click(object sender, EventArgs e)
         {
             eqAPI.AddFilter();
@@ -504,7 +707,11 @@ namespace equalizerapo_and_zune
                 MessageParser.MESSAGE_TYPE.FILTER_ADDED),
                 true);
         }
-
+        
+        /// <summary>
+        /// Update the value of the volume slider and numeric.
+        /// </summary>
+        /// <seealso cref="UpdateAll"/>
         private void UpdatePreamp()
         {
             if (trackbar_volume.InvokeRequired)
@@ -515,11 +722,18 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                trackbar_volume.Value = eqAPI.GetPreAmp();
-                numeric_volume.Value = eqAPI.GetPreAmp();
+                trackbar_volume.Value = eqAPI.PreAmp;
+                numeric_volume.Value = eqAPI.PreAmp;
             }
         }
-
+        
+        /// <summary>
+        /// Handles a change the <see cref="trackbar_volume"/> value.
+        /// Changes the equalizer preAmp (aka volume).
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.PreAmp"/>
         private void trackbar_volume_ValueChanged(object sender, EventArgs e)
         {
             if (trackbar_volume.InvokeRequired)
@@ -530,13 +744,20 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                eqAPI.ChangePreamp(trackbar_volume.Value);
+                eqAPI.PreAmp = trackbar_volume.Value;
                 messenger.Send(
                     messageParser.CreateMessage(MessageParser.MESSAGE_TYPE.VOLUME_CHANGED),
                     false);
             }
         }
 
+        /// <summary>
+        /// Handles a change the <see cref="numeric_volume"/> value.
+        /// Changes the equalizer preAmp (aka volume).
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="equalizerapo_api.PreAmp"/>
         private void numeric_volume_ValueChanged(object sender, EventArgs e)
         {
             if (trackbar_volume.InvokeRequired)
@@ -547,13 +768,20 @@ namespace equalizerapo_and_zune
             }
             else
             {
-                eqAPI.ChangePreamp(trackbar_volume.Value);
+                eqAPI.PreAmp = trackbar_volume.Value;
                 messenger.Send(
                     messageParser.CreateMessage(MessageParser.MESSAGE_TYPE.VOLUME_CHANGED),
                     true);
             }
         }
 
+        /// <summary>
+        /// Handles a change to the <see cref="combobox_listening_port"/> selected value.
+        /// Changes the IPv4 address that the client app connects to.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="Messenger.ChangeListeningAddress"/>
         private void combobox_listening_port_SelectedValueChanged(object sender, System.EventArgs e)
         {
             if (combobox_listening_port.InvokeRequired)
@@ -576,6 +804,14 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Handles a click on <see cref="button_play_pause"/>.
+        /// Changes the playback state by communicating with the Zune player.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="e">N/A</param>
+        /// <seealso cref="ZuneAPI.PauseTrack"/>
+        /// <seealso cref="ZuneAPI.PlayTrack"/>
         private void button_play_pause_Click(object sender, EventArgs e)
         {
             updateMessagesEnabled["playback"] = true;
@@ -593,18 +829,22 @@ namespace equalizerapo_and_zune
 
         #region connection methods
 
+        /// <summary>
+        /// Calls <see cref="UpdateListenerDescription"/> with the state of the
+        /// connection (established or no?).
+        /// </summary>
         private void UpdateListenerDescription()
         {
-            if (textblock_listening_port.Text == form_main.CONNECTION_ESTABLISHED)
-            {
-                UpdateListenerDescription(true);
-            }
-            else
-            {
-                UpdateListenerDescription(false);
-            }
+            bool connected = 
+                textblock_listening_port.Text == form_main.CONNECTION_ESTABLISHED;
+            UpdateListenerDescription(connected);
         }
 
+        /// <summary>
+        /// Updates the <see cref="textblock_listening_port"/> and <see cref="combobox_listening_report"/>.
+        /// Set the state of these two object to reflect the connection state of the <see cref="Messenger"/>.
+        /// </summary>
+        /// <param name="connected">True if the client app is connected.</param>
         private void UpdateListenerDescription(bool connected)
         {
             if (label_artistname_trackname.InvokeRequired)
@@ -631,6 +871,13 @@ namespace equalizerapo_and_zune
             }
         }
 
+        /// <summary>
+        /// Triggered as the <see cref="Messenger.ConnectedSocketCall"/> delegate
+        /// when the client app connects.
+        /// Updates the <see cref="textblock_listening_port"/> and
+        /// sends the current track to the client.
+        /// </summary>
+        /// <param name="sender">N/A</param>
         private void ConnectedSocket(object sender)
         {
             UpdateListenerDescription(true);
@@ -640,11 +887,24 @@ namespace equalizerapo_and_zune
                 true);
         }
 
+        /// <summary>
+        /// Triggered as the <see cref="Messenger.MessageReceivedCall"/> delegate
+        /// when a message is received from the client.
+        /// Parses the message with the <see cref="MessageParser"/>.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="args">Contains the message</param>
         private void MessageReceieved(object sender, Messenger.MessageEventArgs args)
         {
             messageParser.ParseMessage(args.message);
         }
 
+        /// <summary>
+        /// Triggered as the <see cref="Messenger.DisconnectedSocketCall"/> delegate
+        /// when the client app disconnects.
+        /// Updates the <see cref="textblock_listening_port"/>.
+        /// </summary>
+        /// <param name="sender">N/A</param>
         private void DisconnectedSocket(object sender)
         {
             UpdateListenerDescription(false);

@@ -7,6 +7,15 @@ using System.Threading.Tasks;
 
 namespace equalizerapo_and_zune
 {
+    /// <summary>
+    /// Used to talk to the Equalizer APO.
+    /// 
+    /// Also used to hold the state of the equalizer, including:
+    /// * the current <see cref="Track"/> object
+    /// * the current <see cref="File"/> object that represents the equalization settings for the track
+    /// * the state of the equalizer (applied or not)
+    /// * the preAmp (aka volume) value of the equalizer
+    /// </summary>
     public class equalizerapo_api
     {
         #region constants
