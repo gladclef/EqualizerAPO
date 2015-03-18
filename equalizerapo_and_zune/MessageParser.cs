@@ -106,9 +106,8 @@ namespace equalizerapo_and_zune
                     }
                     break;
                 case "volume":
-                    eqAPI.ChangePreamp(
-                        Convert.ToInt32(
-                            Convert.ToDouble(restOfMessage)));
+                    eqAPI.PreAmp = Convert.ToInt32(
+                        Convert.ToDouble(restOfMessage));
                     break;
             }
         }
@@ -161,7 +160,7 @@ namespace equalizerapo_and_zune
                     break;
                 case MESSAGE_TYPE.VOLUME_CHANGED:
                     sb.Append("volume:");
-                    sb.Append(eqAPI.GetPreAmp());
+                    sb.Append(eqAPI.PreAmp);
                     break;
                 case MESSAGE_TYPE.TRACK_CHANGED:
                     sb.Append("track_changed:artist:");

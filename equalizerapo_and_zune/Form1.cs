@@ -574,13 +574,23 @@ namespace equalizerapo_and_zune
         }
 
         /// <summary>
+        /// Calls <see cref="chart_filters_Click"/> with a filterIndex value of -1.
+        /// </summary>
+        /// <param name="sender">sender object</param>
+        /// <param name="e">mouse event</param>
+        private void chart_filters_Click(object sender, MouseEventArgs e)
+        {
+            chart_filters_Click(sender, e, -1);
+        }
+
+        /// <summary>
         /// Adjusts the gain based on which filter is clicked.
         /// Also register that the mouse is currently being pressed on the <see cref="chart_filters"/>.
         /// </summary>
         /// <param name="sender">sender object</param>
         /// <param name="e">mouse event</param>
         /// <param name="filterIndex">if -1, then compute filter index</param>
-        private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex = -1)
+        private void chart_filters_Click(object sender, MouseEventArgs e, int filterIndex)
         {
             double gainMax = equalizerapo_api.GAIN_MAX;
             double filterCount = eqAPI.GetFilters().Count;
