@@ -37,7 +37,7 @@ namespace equalizerapo_and_zune
         /// </summary>
         public DeferredInvokeDelegate DisconnectedSocketCall { get; set; }
         /// <summary>
-        /// Used to delegate <see cref="Connection.GetMessage"/> messages back to the main form
+        /// Used to delegate <see cref="Connection.InterpretMessages"/> messages back to the main form
         /// </summary>
         public DeferredInvokeMessageDelegate MessageReceivedCall { get; set; }
 
@@ -97,7 +97,7 @@ namespace equalizerapo_and_zune
         }
 
         /// <summary>
-        /// Triggered by <see cref="Connection.GetMessage"/>.
+        /// Triggered by <see cref="Connection.InterpretMessages"/>.
         /// Passes the message along via <see cref="MessageReceivedCall"/>
         /// </summary>
         /// <param name="sender"><see cref="Connection"/></param>

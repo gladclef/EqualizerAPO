@@ -44,24 +44,6 @@ namespace equalizerapo_and_zune
         /// </summary>
         private SocketClient ListeningSocket;
         /// <summary>
-        /// Used to queue up messages so that message receiving isn't
-        /// blocked by application logic.
-        /// </summary>
-        private static Queue<string> MessageQueue;
-        /// <summary>
-        /// Triggers <see cref="GetMessage"/> occasionaly,
-        /// checking to see if there's anything in
-        /// <see cref="MessageQueue"/>.
-        /// </summary>
-        private System.Timers.Timer MessageListenerTimer;
-        /// <summary>
-        /// Like <see cref="MessageListenerTimer"/>, except that
-        /// it starts once a message is received, continues until
-        /// a message is no longer in the queue, and triggers
-        /// significantly more often.
-        /// </summary>
-        private System.Timers.Timer ShortMessageListenerTimer;
-        /// <summary>
         /// Check occasionally to see if the
         /// <see cref="CurrentSocketClient"/> is still alive.
         /// </summary>
@@ -77,10 +59,6 @@ namespace equalizerapo_and_zune
         /// messages aren't sent too often.
         /// </summary>
         private long LastSendTime;
-        /// <summary>
-        /// used to obtain exclusive access to the message queue
-        /// </summary>
-        private volatile static AutoResetEvent reset_MessageQueue;
 
         #endregion
 
@@ -138,16 +116,6 @@ namespace equalizerapo_and_zune
         {
             // release connections and stop timers
             EndConnection();
-
-            // release other objects
-            MessageQueue = null;
-
-            // free AutoResetEvents
-            if (reset_MessageQueue != null)
-            {
-                reset_MessageQueue.Close();
-                reset_MessageQueue = null;
-            }
         }
 
         /// <summary>
@@ -166,8 +134,10 @@ namespace equalizerapo_and_zune
 
             // connect and start listening to messages from this socket
             string success = CurrentSocketClient.Connect(socket);
-            CurrentSocketClient.HandleIncomingMessages(
-                new SocketClient.SocketCallbackDelegate(SocketCallback));
+            if (success == SocketClient.SUCCESS)
+            {
+                CurrentSocketClient.MessageReceived += MessageReceived;
+            }
 
             return success;
         }
@@ -195,8 +165,7 @@ namespace equalizerapo_and_zune
             // start listening for messages from this socket
             if (success == SocketClient.SUCCESS)
             {
-                CurrentSocketClient.HandleIncomingMessages(
-                    new SocketClient.SocketCallbackDelegate(SocketCallback));
+                CurrentSocketClient.MessageReceived += MessageReceived;
             }
             else
             {
@@ -284,7 +253,7 @@ namespace equalizerapo_and_zune
             }
 
             // try to send, get success status
-            string success = CurrentSocketClient.Send("%" + data);
+            string success = CurrentSocketClient.Send(data);
             LastSendTime = DateTime.Now.Ticks;
 
             // message sending was NOT successful?
@@ -335,29 +304,6 @@ namespace equalizerapo_and_zune
             {
                 Connect(ListeningAddress.ToString(), Connection.APP_PORT);
             }
-
-            // start the listener
-            if (MessageListenerTimer != null)
-            {
-                Connection.KillTimer(MessageListenerTimer, "MessageListenerTimer");
-            }
-            int listenMessageTimout = Convert.ToInt32(
-                Connection.LISTEN_MESSAGE_TIMEOUT * 1000);
-            MessageListenerTimer = new System.Timers.Timer(listenMessageTimout);
-            MessageListenerTimer.Elapsed +=
-                new System.Timers.ElapsedEventHandler(GetMessage);
-            MessageListenerTimer.Start();
-
-            // start the listener
-            if (ShortMessageListenerTimer != null)
-            {
-                Connection.KillTimer(ShortMessageListenerTimer, "ShortMessageListenerTimer");
-            }
-            int shortListenMessageTimout = Convert.ToInt32(
-                Connection.SHORT_MESSAGE_TIMEOUT * 1000);
-            ShortMessageListenerTimer = new System.Timers.Timer(shortListenMessageTimout);
-            ShortMessageListenerTimer.Elapsed +=
-                new System.Timers.ElapsedEventHandler(GetMessage);
 
             // start the keep-alive checks
             if (KeepAliveTimer != null)
@@ -415,18 +361,6 @@ namespace equalizerapo_and_zune
         private void Init()
         {
             ListeningAddress = Connection.ListeningAddresses().Last();
-            
-            // create the message queue if it doesn't exist
-            if (MessageQueue == null)
-            {
-                MessageQueue = new Queue<string>();
-            }
-
-            // create AutoResetEvents that don't exist
-            if (reset_MessageQueue == null)
-            {
-                reset_MessageQueue = new AutoResetEvent(true);
-            }
         }
 
         /// <summary>
@@ -438,16 +372,6 @@ namespace equalizerapo_and_zune
             {
                 CurrentSocketClient.Close();
                 CurrentSocketClient = null;
-            }
-            if (MessageListenerTimer != null)
-            {
-                Connection.KillTimer(MessageListenerTimer, "MessageListenerTimer");
-                MessageListenerTimer = null;
-            }
-            if (ShortMessageListenerTimer != null)
-            {
-                Connection.KillTimer(ShortMessageListenerTimer, "ShortMessageListenerTimer");
-                ShortMessageListenerTimer = null;
             }
             if (KeepAliveTimer != null)
             {
@@ -552,56 +476,28 @@ namespace equalizerapo_and_zune
         }
 
         /// <summary>
-        /// Checks if a message has been received and interprets the basic message.
+        /// Interprets the basic message.
         /// If a message, calls <see cref="MessageReceivedEvent"/>.
         /// If a disconnection from the socket, calls <see cref="DeferredDisconnected"/>.
-        /// Called occasionally by <see cref="MessageListenerTimer"/>
         /// </summary>
-        /// <param name="sender">N/A</param>
-        /// <param name="args">N/A</param>
-        private void GetMessage(object sender, System.Timers.ElapsedEventArgs args)
+        /// <param name="message">the message to be interpretted</param>
+        private void InterpretMessages(string message)
         {
-            // get the message from the message queue
-            string message = "";
-            try
-            {
-                reset_MessageQueue.WaitOne(100);
-                // release the short listener timer if there aren't any more messages to be processed
-                if (MessageQueue.Count == 0)
-                {
-                    // no more messages, stop listening so quickly
-                    ShortMessageListenerTimer.Stop();
-                    return;
-                }
-                message = MessageQueue.Dequeue();
-                reset_MessageQueue.Set();
-            }
-            catch (Exception e)
-            {
-                // catch thread-syncronization related errors
-                if (!(e is NullReferenceException) &&
-                    !(e is ObjectDisposedException))
-                {
-                    throw;
-                }
-                else
-                {
-                    DeferredDisconnected();
-                    return;
-                }
-            }
-
             // parse the message
-            if (message == SocketClient.KEEP_ALIVE)
-            {
-                // continue until a real message is received
-                GetMessage(sender, args);
-            }
-            else if (message == SocketClient.OPERATION_TIMEOUT ||
+            if (message == SocketClient.OPERATION_TIMEOUT ||
                 message == SocketClient.UNINITIALIZED ||
-                message == SocketClient.NO_MESSAGE)
+                message == SocketClient.NO_MESSAGE ||
+                message == SocketClient.KEEP_ALIVE ||
+                message == SocketClient.KEEP_ALIVE_ACK ||
+                message == SocketClient.CONNECTION_RESET)
             {
                 // do nothing
+            }
+            else if (message == SocketClient.DISCONNECTED ||
+                message == SocketClient.CONNECTION_ABORTED)
+            {
+                // disconnect
+                DeferredDisconnected();
             }
             else
             {
@@ -609,20 +505,6 @@ namespace equalizerapo_and_zune
                 if (MessageRecievedEvent != null)
                 {
                     MessageRecievedEvent(this, new MessageReceivedEventArgs(message));
-                }
-                // start listening for messages more often
-                try
-                {
-                    ShortMessageListenerTimer.Start();
-                }
-                catch (Exception e)
-                {
-                    // catch thread-syncronization related errors
-                    if (!(e is NullReferenceException) &&
-                        !(e is ObjectDisposedException))
-                    {
-                        throw;
-                    }
                 }
             }
         }
@@ -640,77 +522,39 @@ namespace equalizerapo_and_zune
 
         /// <summary>
         /// Triggered by <see cref="SocketClient.HandleIncomingMessages"/>.
-        /// Adds messages to the <see cref="MessageQueue"/>.
-        /// If the socket sends a disconnect message, calls <see cref="DeferredDisconnected"/>.
+        /// Makes a call to <see cref="InterpretMessages"/>
         /// </summary>
         /// <param name="s">N/A</param>
         /// <param name="args">The message received event args</param>
-        private void SocketCallback(object s, System.Net.Sockets.SocketAsyncEventArgs args)
+        private void MessageReceived(object s, EventArgs args)
         {
             // check for null values
-            if (CurrentSocketClient == null ||
-                reset_MessageQueue == null ||
-                MessageQueue == null)
+            if (CurrentSocketClient == null)
             {
                 return;
             }
 
-            // prepare for another message to be recieved
-            try
-            {
-                CurrentSocketClient.HandleIncomingMessages(
-                    new SocketClient.SocketCallbackDelegate(SocketCallback));
-            }
-            catch (ObjectDisposedException)
-            {
-                System.Diagnostics.Debugger.Log(1, "", "** error: can't recieve any more messages\n");
-                // do something here?
-            }
-
             // retrieve and parse the message
-            string message;
-            if (args.SocketError == System.Net.Sockets.SocketError.Success)
+            string message = (args as SocketClient.MessageEventArgs).message;
+
+            // determine if this message is either a disconnect or worthy message
+            if (message.Length == 0)
             {
-                // Retrieve the data from the buffer
-                message = Encoding.UTF8.GetString(args.Buffer, args.Offset, args.BytesTransferred);
-                message = message.Trim('\0');
+                // Do nothing
             }
             else
             {
-                message = args.SocketError.ToString();
-            }
-
-            // parse messages
-            string[] messages = message.Split(new char[] { '%' });
-
-            foreach (string m in messages)
-            {
-                // determine if this message is either a disconnect or worthy message
-                if (m.Length == 0)
+                try
                 {
-                    continue;
+                    InterpretMessages(message);
                 }
-                else if (m == SocketClient.CONNECTION_ABORTED ||
-                    m == SocketClient.CONNECTION_RESET)
+                catch (Exception e)
                 {
-                    DeferredDisconnected();
-                }
-                else
-                {
-                    try
+                    // catch thread-syncronization related errors
+                    if (!(e is NullReferenceException) &&
+                        !(e is ObjectDisposedException))
                     {
-                        reset_MessageQueue.WaitOne(100);
-                        MessageQueue.Enqueue(m);
-                        reset_MessageQueue.Set();
-                    }
-                    catch (Exception e)
-                    {
-                        // catch thread-syncronization related errors
-                        if (!(e is NullReferenceException) &&
-                            !(e is ObjectDisposedException))
-                        {
-                            throw;
-                        }
+                        throw;
                     }
                 }
             }

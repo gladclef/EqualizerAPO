@@ -46,6 +46,15 @@ namespace equalizerapo_and_zune
         /// </summary>
         private Accepter ListenAccepter;
 
+        private byte[] incommingMessagesBuffer;
+
+        private static string[] AutoResponses = new string[] {
+            SUCCESS, KEEP_ALIVE, KEEP_ALIVE_ACK, CONNECTION_ABORTED,
+            CONNECTION_RESET
+        };
+
+        private ManualResetEvent ReceivingMessage = new ManualResetEvent(true);
+
         #endregion
 
         #region event handlers
@@ -54,6 +63,11 @@ namespace equalizerapo_and_zune
         /// Triggers when a new client connects.
         /// </summary>
         public EventHandler ConnectedEvent;
+
+        /// <summary>
+        /// Triggers when a message has been received.
+        /// </summary>
+        public EventHandler MessageReceived;
 
         #endregion
 
@@ -135,6 +149,12 @@ namespace equalizerapo_and_zune
             // If no response comes back within this time then proceed
             clientDone.WaitOne(TIMEOUT_MILLISECONDS);
 
+            // start listening for incoming messages
+            if (result == SUCCESS)
+            {
+                HandleIncomingMessages();
+            }
+
             return result;
         }
 
@@ -205,9 +225,14 @@ namespace equalizerapo_and_zune
                     clientDone.Set();
                 });
 
-                // Add the data to be sent into the buffer
+                // format the data to be sent to the buffer
                 byte[] payload = Encoding.UTF8.GetBytes(data);
-                socketEventArg.SetBuffer(payload, 0, payload.Length);
+                byte[] fullPayload = new byte[payload.Length + sizeof(uint)];
+                BitConverter.GetBytes(Convert.ToUInt32(data.Length)).CopyTo(fullPayload, 0);
+                payload.CopyTo(fullPayload, sizeof(uint));
+
+                // Add the data to be sent into the buffer
+                socketEventArg.SetBuffer(fullPayload, 0, fullPayload.Length);
 
                 // Sets the state of the event to nonsignaled, causing threads to block
                 clientDone.Reset();
@@ -232,27 +257,129 @@ namespace equalizerapo_and_zune
         /// Used to handle incoming messages from clients.
         /// Must be triggered before each message.
         /// </summary>
-        /// <param name="d">A <see cref="SocketCallbackDelegate"/> that
-        ///     is called when a message is received.</param>
-        public void HandleIncomingMessages(SocketCallbackDelegate d)
+        public void HandleIncomingMessages()
         {
-            // We are receiving over an established socket connection
-            if (_socket != null)
+            // are we receiving over an established socket connection
+            if (_socket == null)
             {
-                // Create SocketAsyncEventArgs context object
-                SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
-                socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
+                return;
+            }
 
-                // Setup the buffer to receive the data
-                socketEventArg.SetBuffer(new Byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
+            // Create SocketAsyncEventArgs context object
+            SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
+            socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
 
-                // Inline event handler for the Completed event.
-                // Note: This even handler was implemented inline in order to make 
-                // this method self-contained.
-                socketEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(d);
+            // Setup the buffer to receive the data
+            socketEventArg.SetBuffer(new Byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
 
-                // Make an asynchronous Receive request over the socket
-                _socket.ReceiveAsync(socketEventArg);
+            // Inline event handler for the Completed event.
+            // Note: This even handler was implemented inline in order to make 
+            // this method self-contained.
+            socketEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(ReceiveMessage);
+
+            // Make an asynchronous Receive request over the socket
+            _socket.ReceiveAsync(socketEventArg);
+        }
+
+        private void ReceiveMessage(object sender, SocketAsyncEventArgs args)
+        {
+            // initialize some stuff
+            LinkedList<string> messages = new LinkedList<string>();
+
+            // wait for any other threads utilizing this method to finish
+            ReceivingMessage.WaitOne(200);
+
+            // start listening for the next message
+            HandleIncomingMessages();
+
+            // add this message to the buffer
+            incommingMessagesBuffer.Concat(args.Buffer);
+
+            // check for a signal message from the Socket class
+            if (incommingMessagesBuffer.Length > 0)
+            {
+                messages = CheckBufferForSocketSignals(messages);
+            }
+
+            // check for a standard message from the server
+            if (incommingMessagesBuffer.Length >= sizeof(uint))
+            {
+                messages = CheckBufferForStandardMessages(messages);
+            }
+
+            // create a received message event for each message received
+            foreach (string message in messages)
+            {
+                if (MessageReceived != null)
+                {
+                    MessageReceived(this, new MessageEventArgs(message));
+                }
+            }
+
+            ReceivingMessage.Set();
+        }
+
+        private LinkedList<string> CheckBufferForSocketSignals(LinkedList<string> messages)
+        {
+            while (true)
+            {
+                // convert to string
+                string convertedString = BitConverter.ToString(incommingMessagesBuffer, 0);
+
+                // test each auto response against the beggining of the string
+                bool found = false;
+                foreach (string autoResponse in AutoResponses)
+                {
+                    if (convertedString.StartsWith(autoResponse))
+                    {
+                        messages.AddLast(autoResponse);
+                        found = true;
+                        convertedString = convertedString.Substring(autoResponse.Length);
+                    }
+                }
+
+                // were no more messages found? exit the loop
+                if (!found)
+                {
+                    return messages;
+                }
+
+                // convert back to byte array
+                incommingMessagesBuffer = Encoding.UTF8.GetBytes(convertedString);
+            }
+        }
+
+        public LinkedList<string> CheckBufferForStandardMessages(LinkedList<string> messages)
+        {
+            while (true)
+            {
+                // get the length of the next message and check that
+                // against the length of the buffer
+                uint stringLength = BitConverter.ToUInt32(incommingMessagesBuffer, 0);
+                uint minBufferSize = sizeof(char) * stringLength + sizeof(uint);
+                if (minBufferSize > incommingMessagesBuffer.Length)
+                {
+                    return messages;
+                }
+
+                // there is a message contained here
+                // get the messages
+                byte[] newMessage = new byte[minBufferSize - sizeof(char)];
+                incommingMessagesBuffer.CopyTo(newMessage, -sizeof(char));
+                messages.AddLast(BitConverter.ToString(newMessage));
+
+                // remove the message from the buffer
+                if (incommingMessagesBuffer.Length == minBufferSize)
+                {
+                    incommingMessagesBuffer = new byte[0];
+                }
+                else
+                {
+                    byte[] newBuffer = new byte[
+                        incommingMessagesBuffer.Length - minBufferSize];
+                    incommingMessagesBuffer.CopyTo(newBuffer, -minBufferSize);
+                    incommingMessagesBuffer = newBuffer;
+                }
             }
         }
 
@@ -449,6 +576,15 @@ namespace equalizerapo_and_zune
         #endregion
 
         #region classes
+
+        public class MessageEventArgs : EventArgs
+        {
+            public string message { get; set; }
+            public MessageEventArgs(string m)
+            {
+                message = m;
+            }
+        }
 
         /// <summary>
         /// Used to listen for incoming connections.
