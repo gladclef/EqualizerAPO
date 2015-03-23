@@ -30,6 +30,8 @@ namespace equalizerapo_and_zune
         public const string DISCONNECTED = "NotConnected";
         public const string CONNECTION_ABORTED = "ConnectionAborted";
         public const string CONNECTION_RESET = "ConnectionReset";
+        public const string INIT_MESSAGE = "ALLIGN_ME";
+        public const string INIT_MESSAGE_END = "BEGIN_TRANSMISSION";
 
         #endregion
 
@@ -250,6 +252,7 @@ namespace equalizerapo_and_zune
                 Close();
             }
 
+            System.Diagnostics.Debugger.Log(1, "", String.Format(">> {0} [{1}]\n", data, response));
             return response;
         }
 
@@ -281,6 +284,11 @@ namespace equalizerapo_and_zune
             _socket.ReceiveAsync(socketEventArg);
         }
 
+        /// <summary>
+        /// Callback when a message is received from <see cref="HandleIncomingMessages"/>.
+        /// </summary>
+        /// <param name="sender">N/A</param>
+        /// <param name="args">The socket events</param>
         private void ReceiveMessage(object sender, SocketAsyncEventArgs args)
         {
             // initialize some stuff
@@ -298,13 +306,13 @@ namespace equalizerapo_and_zune
             // check for a signal message from the Socket class
             if (incommingMessagesBuffer.Length > 0)
             {
-                messages = CheckBufferForSocketSignals(messages);
+                CheckBufferForSocketSignals(messages);
             }
 
             // check for a standard message from the server
             if (incommingMessagesBuffer.Length >= sizeof(uint))
             {
-                messages = CheckBufferForStandardMessages(messages);
+                CheckBufferForStandardMessages(messages);
             }
 
             // create a received message event for each message received
@@ -312,6 +320,7 @@ namespace equalizerapo_and_zune
             {
                 if (MessageReceived != null)
                 {
+                    System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", message));
                     MessageReceived(this, new MessageEventArgs(message));
                 }
             }
@@ -319,7 +328,12 @@ namespace equalizerapo_and_zune
             ReceivingMessage.Set();
         }
 
-        private LinkedList<string> CheckBufferForSocketSignals(LinkedList<string> messages)
+        /// <summary>
+        /// Searches through the incommingMessagesBuffer for AutoResponses from the socket.
+        /// (such messages won't be preprended with a uint of the message length)
+        /// </summary>
+        /// <param name="messages">List of messages to append found messages to</param>
+        private void CheckBufferForSocketSignals(LinkedList<string> messages)
         {
             while (true)
             {
@@ -341,7 +355,7 @@ namespace equalizerapo_and_zune
                 // were no more messages found? exit the loop
                 if (!found)
                 {
-                    return messages;
+                    return;
                 }
 
                 // convert back to byte array
@@ -349,7 +363,12 @@ namespace equalizerapo_and_zune
             }
         }
 
-        public LinkedList<string> CheckBufferForStandardMessages(LinkedList<string> messages)
+        /// <summary>
+        /// Searches through the incommingMessagesBuffer for AutoResponses from the socket.
+        /// (such messages won't be preprended with a uint of the message length)
+        /// </summary>
+        /// <param name="messages">List of messages to append found messages to</param>
+        public void CheckBufferForStandardMessages(LinkedList<string> messages)
         {
             while (true)
             {
@@ -359,13 +378,12 @@ namespace equalizerapo_and_zune
                 uint minBufferSize = sizeof(char) * stringLength + sizeof(uint);
                 if (minBufferSize > incommingMessagesBuffer.Length)
                 {
-                    return messages;
+                    return;
                 }
 
                 // there is a message contained here
                 // get the messages
-                byte[] newMessage = new byte[minBufferSize - sizeof(char)];
-                incommingMessagesBuffer.CopyTo(newMessage, -sizeof(char));
+                byte[] newMessage = incommingMessagesBuffer.Skip(sizeof(uint)).ToArray();
                 messages.AddLast(BitConverter.ToString(newMessage));
 
                 // remove the message from the buffer
@@ -577,6 +595,9 @@ namespace equalizerapo_and_zune
 
         #region classes
 
+        /// <summary>
+        /// For passing messages during message received events
+        /// </summary>
         public class MessageEventArgs : EventArgs
         {
             public string message { get; set; }
@@ -644,27 +665,170 @@ namespace equalizerapo_and_zune
             /// </summary>
             /// <param name="sender">The sender</param>
             /// <param name="e">the event arguments</param>
-            private void AcceptConnection(object sender, SocketAsyncEventArgs e)
+            private async void AcceptConnection(object sender, SocketAsyncEventArgs args)
             {
                 // check for success
-                if (e.SocketError == SocketError.Success)
+                if (args.SocketError == SocketError.Success)
                 {
+                    Socket newSocket = args.AcceptSocket;
+
+                    // send the alignment message
+                    string alignmentMessage =
+                        INIT_MESSAGE + INIT_MESSAGE + INIT_MESSAGE + INIT_MESSAGE_END;
+                    newSocket.Send(Encoding.UTF8.GetBytes(alignmentMessage));
+
+                    // receive the alignment message
+                    try
+                    {
+                        await AlignIncomingMessages(newSocket);
+                    }
+                    catch (Exception e)
+                    {
+                        System.Diagnostics.Debugger.Log(1, "", e.Message + "\n");
+                        System.Diagnostics.Debugger.Log(1, "", e.StackTrace + "\n");
+                        throw e;
+                    }
+
                     // apply connected event handler that was set for the SocketClient
                     if (ConnectedEvent != null)
                     {
-                        Socket newSocket = e.AcceptSocket;
                         ConnectedEvent(this, new ConnectedEventArgs(newSocket));
+                    }
+                    else
+                    {
+                        newSocket.Close();
                     }
                 }
                 else
                 {
                     // so what was the error, exactly?
                     System.Diagnostics.Debugger.Log(1, "",
-                        "-- error in accepting socket: " + e.SocketError + "\n");
+                        "-- error in accepting socket: " + args.SocketError + "\n");
                 }
 
                 // accept the next connection
                 AcceptNextAsync();
+            }
+
+            /// <summary>
+            /// Because of stupid stupidness the bytes aren't coming in properly
+            /// aligned. This function is used to align the bytes with each new
+            /// connection.
+            /// </summary>
+            /// <returns>True if alignment succeeds, false otherwise</returns>
+            private async Task<bool> AlignIncomingMessages(Socket _socket, bool checkForEndMessage = false)
+            {
+                string message = checkForEndMessage ? INIT_MESSAGE_END : INIT_MESSAGE;
+                byte[] byteRep = Encoding.UTF8.GetBytes(message);
+                Queue<byte> buffer = new Queue<byte>();
+
+                // debugging purposes
+                uint byteIndex = 0;
+                StringBuilder sb = new StringBuilder();
+                sb.Append("[");
+
+                // read in the next byte until the alignment string is found
+                while (true)
+                {
+                    // load the next byte into the buffer
+                    byte thisByte = Receive(_socket, 1)[0];
+                    buffer.Enqueue(thisByte);
+                    byteIndex++;
+
+                    // debugging and error checking
+                    sb.Append(thisByte.ToString());
+                    if (byteIndex % 8 == 0)
+                    {
+                        sb.Append("]\n[");
+                    }
+                    else if (byteIndex > byteRep.Length * 3)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        sb.Append(", ");
+                    }
+
+                    // there's a chance the buffer now matches the alignment string
+                    if (buffer.Count == byteRep.Length)
+                    {
+                        // get the string representation of the buffer to
+                        // compare to INIT_MESSAGE
+                        byte[] byteBuffer = buffer.ToArray();
+                        string msg = Encoding.UTF8.GetString(
+                            byteBuffer, 0, byteBuffer.Length);
+
+                        // does the string match? Allignment successful!
+                        if (msg == message)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            // take out the trash
+                            buffer.Dequeue();
+                        }
+                    }
+                }
+
+                // debugging
+                sb.Append("]\n");
+                sb.Append(message);
+                sb.Append("\n");
+                System.Diagnostics.Debugger.Log(1, "", sb.ToString());
+
+                // look for the go ahead message that indicates tranceiving is about to begin
+                if (!checkForEndMessage)
+                {
+                    return await AlignIncomingMessages(_socket, true);
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// Receive data from the server using the established socket connection
+            /// </summary>
+            /// <returns>The data received from the client, or an empty byte array on error</returns>
+            private byte[] Receive(Socket _socket, int bufferSize)
+            {
+                // initialize some values
+                byte[] retval = new byte[bufferSize];
+                var waitSignal = new ManualResetEvent(false);
+
+                // Create SocketAsyncEventArgs context object
+                SocketAsyncEventArgs socketEventArg = new SocketAsyncEventArgs();
+                socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
+
+                // Setup the buffer to receive the data
+                socketEventArg.SetBuffer(retval, 0, bufferSize);
+
+                // Inline event handler for the Completed event.
+                // Note: This even handler was implemented inline in order to make 
+                // this method self-contained.
+                socketEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(delegate(object s, SocketAsyncEventArgs args)
+                {
+                    if (args.SocketError == SocketError.Success)
+                    {
+                        // Retrieve the data from the buffer
+                        retval = args.Buffer;
+                    }
+                    else
+                    {
+                        // error
+                        retval = new byte[0];
+                    }
+                    waitSignal.Set();
+                });
+
+                // Make an asynchronous Receive request over the socket
+                _socket.ReceiveAsync(socketEventArg);
+
+                // block the thread until the socket receive has been completed
+                waitSignal.WaitOne(Int32.MaxValue);
+
+                return retval;
             }
         }
 
