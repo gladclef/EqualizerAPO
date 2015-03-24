@@ -17,4 +17,5 @@ Currently there is one supported media player:
 
 ## Client Side Apps
 I want to be able to control this software from my phone. Don't you?
-There's an app that I'm working on to do this from Windows Phone 8.1. Hopefully there will be a link here soon to that project and it may even hit the app store at some point.
+There's [this app](https://github.com/gladclef/EqualizerAPO_Connect) that I'm working on to do this from Windows Phone 8.1.
+Maybe someday there will be other supported other platforms, too (let me know if you have something so that I can link to it here!).
