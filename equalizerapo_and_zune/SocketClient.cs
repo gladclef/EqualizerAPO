@@ -50,13 +50,28 @@ namespace equalizerapo_and_zune
         /// </summary>
         private Accepter ListenAccepter;
 
+        /// <summary>
+        /// A rolling buffer of incoming bytes from the socket.
+        /// Used because this aweful socket class is almost entirely
+        /// incapable of communicating with the SocketStream class found
+        /// in the 4.5 API (ahem, Microsoft).
+        /// </summary>
         private byte[] incommingMessagesBuffer = new byte[0];
 
+        /// <summary>
+        /// Messages generated directly by this Socket class.
+        /// These messages are caught and interpretted as standard messages
+        /// in <see cref="CheckBufferForSocketSignals"/>.
+        /// </summary>
         private static string[] AutoResponses = new string[] {
             SUCCESS, KEEP_ALIVE, KEEP_ALIVE_ACK, CONNECTION_ABORTED,
             CONNECTION_RESET
         };
 
+        /// <summary>
+        /// Used to lock the thread and prevent more than one message from 
+        /// being interpreted at a time.
+        /// </summary>
         private ManualResetEvent ReceivingMessage = new ManualResetEvent(true);
 
         #endregion
