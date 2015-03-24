@@ -17,7 +17,9 @@ namespace equalizerapo_and_zune
         // timeout period, the call is aborted.
         const int TIMEOUT_MILLISECONDS = 4000;
 
-        // The maximum size of the data buffer to use with the asynchronous socket methods
+        /// <summary>
+        /// The maximum size of the data buffer to use with the asynchronous socket methods
+        /// </summary>
         const int MAX_BUFFER_SIZE = 2048;
 
         // send/receive message constants
@@ -48,7 +50,7 @@ namespace equalizerapo_and_zune
         /// </summary>
         private Accepter ListenAccepter;
 
-        private byte[] incommingMessagesBuffer;
+        private byte[] incommingMessagesBuffer = new byte[0];
 
         private static string[] AutoResponses = new string[] {
             SUCCESS, KEEP_ALIVE, KEEP_ALIVE_ACK, CONNECTION_ABORTED,
@@ -273,7 +275,10 @@ namespace equalizerapo_and_zune
             socketEventArg.RemoteEndPoint = _socket.RemoteEndPoint;
 
             // Setup the buffer to receive the data
-            socketEventArg.SetBuffer(new Byte[MAX_BUFFER_SIZE], 0, MAX_BUFFER_SIZE);
+            // Small enough to actually receive messages from the client in the case
+            // that the client is using a different socket API but not so large as
+            // to receive a zero "empty byte" (looking at you, Microsoft).
+            socketEventArg.SetBuffer(new byte[1], 0, 1);
 
             // Inline event handler for the Completed event.
             // Note: This even handler was implemented inline in order to make 
@@ -297,11 +302,29 @@ namespace equalizerapo_and_zune
             // wait for any other threads utilizing this method to finish
             ReceivingMessage.WaitOne(200);
 
-            // start listening for the next message
-            HandleIncomingMessages();
+            // add new buffer material to the buffer
+            incommingMessagesBuffer = incommingMessagesBuffer.Concat(args.Buffer)
+                .ToArray();
 
-            // add this message to the buffer
-            incommingMessagesBuffer.Concat(args.Buffer);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < incommingMessagesBuffer.Length; i += 10)
+            {
+                sb.Append("[");
+                int count = Math.Min(incommingMessagesBuffer.Length - i, 10);
+                for (int j = 0; j < count; j++)
+                {
+                    sb.Append(incommingMessagesBuffer[i + j]);
+                    if (j < count-1)
+                    {
+                        sb.Append(", ");
+                    }
+                }
+                sb.Append("]\n");
+            }
+            //sb.Append("...");
+            //sb.Append(Encoding.UTF8.GetString(args.Buffer, 0, args.Buffer.Length));
+            //sb.Append("\n");
+            //System.Diagnostics.Debugger.Log(1, "", sb.ToString());
 
             // check for a signal message from the Socket class
             if (incommingMessagesBuffer.Length > 0)
@@ -318,14 +341,16 @@ namespace equalizerapo_and_zune
             // create a received message event for each message received
             foreach (string message in messages)
             {
+                System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", message));
                 if (MessageReceived != null)
                 {
-                    System.Diagnostics.Debugger.Log(1, "", String.Format("<< {0}\n", message));
                     MessageReceived(this, new MessageEventArgs(message));
                 }
             }
 
+            // start listening for the next message
             ReceivingMessage.Set();
+            HandleIncomingMessages();
         }
 
         /// <summary>
@@ -370,21 +395,33 @@ namespace equalizerapo_and_zune
         /// <param name="messages">List of messages to append found messages to</param>
         public void CheckBufferForStandardMessages(LinkedList<string> messages)
         {
-            while (true)
+            while (incommingMessagesBuffer.Length >= sizeof(uint))
             {
+                // get the bytes to check for the length of the message
+                // Microsoft, why are the BitConverter methods not consistent?
+                byte[] uintBytes = incommingMessagesBuffer.Take(sizeof(uint))
+                    .Reverse().ToArray();
+
                 // get the length of the next message and check that
                 // against the length of the buffer
-                uint stringLength = BitConverter.ToUInt32(incommingMessagesBuffer, 0);
-                uint minBufferSize = sizeof(char) * stringLength + sizeof(uint);
+                uint stringLength = BitConverter.ToUInt32(uintBytes, 0);
+                string strOfLength = new String((char)1, (int)stringLength);
+                uint stringOfLenth_Length =
+                    (uint)Encoding.UTF8.GetBytes(strOfLength).Length;
+                uint minBufferSize = stringOfLenth_Length + sizeof(uint);
                 if (minBufferSize > incommingMessagesBuffer.Length)
                 {
                     return;
                 }
 
                 // there is a message contained here
-                // get the messages
-                byte[] newMessage = incommingMessagesBuffer.Skip(sizeof(uint)).ToArray();
-                messages.AddLast(BitConverter.ToString(newMessage));
+                // get the message
+                byte[] messageBytes = incommingMessagesBuffer.Skip(sizeof(uint))
+                    .Take((int)stringOfLenth_Length).ToArray();
+                string message = Encoding.UTF8.GetString(messageBytes);
+
+                // store the message in the messages queue
+                messages.AddLast(message);
 
                 // remove the message from the buffer
                 if (incommingMessagesBuffer.Length == minBufferSize)
@@ -393,10 +430,8 @@ namespace equalizerapo_and_zune
                 }
                 else
                 {
-                    byte[] newBuffer = new byte[
-                        incommingMessagesBuffer.Length - minBufferSize];
-                    incommingMessagesBuffer.CopyTo(newBuffer, -minBufferSize);
-                    incommingMessagesBuffer = newBuffer;
+                    incommingMessagesBuffer = incommingMessagesBuffer
+                        .Skip((int)minBufferSize).ToArray();
                 }
             }
         }

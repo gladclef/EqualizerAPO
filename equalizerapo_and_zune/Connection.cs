@@ -138,6 +138,7 @@ namespace equalizerapo_and_zune
             {
                 CurrentSocketClient.MessageReceived += MessageReceived;
             }
+            CurrentSocketClient.HandleIncomingMessages();
 
             return success;
         }
