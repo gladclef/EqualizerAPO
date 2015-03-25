@@ -277,7 +277,9 @@ namespace equalizerapo_and_zune
         /// Used to handle incoming messages from clients.
         /// Must be triggered before each message.
         /// </summary>
-        public void HandleIncomingMessages()
+        /// <param name="bufferSize">The number of incoming bytes
+        ///     to look for on the incoming socket.</param>
+        public void HandleIncomingMessages(int bufferSize = 1)
         {
             // are we receiving over an established socket connection
             if (_socket == null)
@@ -293,7 +295,7 @@ namespace equalizerapo_and_zune
             // Small enough to actually receive messages from the client in the case
             // that the client is using a different socket API but not so large as
             // to receive a zero "empty byte" (looking at you, Microsoft).
-            socketEventArg.SetBuffer(new byte[1], 0, 1);
+            socketEventArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
 
             // Inline event handler for the Completed event.
             // Note: This even handler was implemented inline in order to make 
@@ -311,8 +313,11 @@ namespace equalizerapo_and_zune
         /// <param name="args">The socket events</param>
         private void ReceiveMessage(object sender, SocketAsyncEventArgs args)
         {
+            System.Diagnostics.Debugger.Log(1, "", ".");
+
             // initialize some stuff
             LinkedList<string> messages = new LinkedList<string>();
+            int bufferSize = 1;
 
             // wait for any other threads utilizing this method to finish
             ReceivingMessage.WaitOne(200);
@@ -350,7 +355,7 @@ namespace equalizerapo_and_zune
             // check for a standard message from the server
             if (incommingMessagesBuffer.Length >= sizeof(uint))
             {
-                CheckBufferForStandardMessages(messages);
+                bufferSize = CheckBufferForStandardMessages(messages);
             }
 
             // create a received message event for each message received
@@ -365,7 +370,7 @@ namespace equalizerapo_and_zune
 
             // start listening for the next message
             ReceivingMessage.Set();
-            HandleIncomingMessages();
+            HandleIncomingMessages(bufferSize);
         }
 
         /// <summary>
@@ -408,7 +413,9 @@ namespace equalizerapo_and_zune
         /// (such messages won't be preprended with a uint of the message length)
         /// </summary>
         /// <param name="messages">List of messages to append found messages to</param>
-        public void CheckBufferForStandardMessages(LinkedList<string> messages)
+        /// <returns>The number of bytes that have yet to be read that haven't
+        ///     been read yet.</returns>
+        public int CheckBufferForStandardMessages(LinkedList<string> messages)
         {
             while (incommingMessagesBuffer.Length >= sizeof(uint))
             {
@@ -426,7 +433,7 @@ namespace equalizerapo_and_zune
                 uint minBufferSize = stringOfLenth_Length + sizeof(uint);
                 if (minBufferSize > incommingMessagesBuffer.Length)
                 {
-                    return;
+                    return ((int)minBufferSize - (int)incommingMessagesBuffer.Length);
                 }
 
                 // there is a message contained here
@@ -449,6 +456,8 @@ namespace equalizerapo_and_zune
                         .Skip((int)minBufferSize).ToArray();
                 }
             }
+
+            return 1;
         }
 
         /// <summary>
